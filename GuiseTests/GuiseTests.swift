@@ -11,26 +11,26 @@ import XCTest
 
 class GuiseTests: XCTestCase {
     
-    override func setUp() {
+    override class func setUp() {
         super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        DependencyResolver.register{ ServerCommunicator(widgetCount: 3) as ServerCommunicating }
+        DependencyResolver.register(name: "sc2") { ServerCommunicator(widgetCount: 7) as ServerCommunicating }
+        DependencyResolver.register(name: "sc3") { (count: Int) in ServerCommunicator(widgetCount: count) as ServerCommunicating }
     }
     
-    override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-        super.tearDown()
+    func testResolveServerCommunicator() {
+        let serverCommunicator = DependencyResolver.resolve()! as ServerCommunicating
+        XCTAssertEqual(serverCommunicator.retrieveWidgetCount(), 3)
     }
     
-    func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+    func testResolveNamedServerCommunicator() {
+        let serverCommunicator = DependencyResolver.resolve(name: "sc2")! as ServerCommunicating
+        XCTAssertEqual(serverCommunicator.retrieveWidgetCount(), 7)
     }
     
-    func testPerformanceExample() {
-        // This is an example of a performance test case.
-        self.measureBlock {
-            // Put the code you want to measure the time of here.
-        }
+    func testResolveParameterizedNamedServerCommunicator() {
+        let count = 9
+        let serverCommunicator = DependencyResolver.resolve(count, name: "sc3")! as ServerCommunicating
+        XCTAssertEqual(serverCommunicator.retrieveWidgetCount(), count)
     }
-    
 }
