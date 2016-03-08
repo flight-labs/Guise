@@ -72,7 +72,7 @@ public struct DependencyResolver {
      - parameter cached: Whether or not the instance is lazily created and then cached.
      - parameter create: The lambda to register with the DependencyResolver.
      */
-    public static func register<P, D>(type type: String = String(D), name: String? = nil, cached: Bool = false, create: P -> D) {
+    public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, cached: Bool = false, create: P -> D) {
         let key = Key(type: type, name: name)
         dependencies[key] = Dependency(cached: cached, create: create)
     }
@@ -87,7 +87,7 @@ public struct DependencyResolver {
      - parameter type: Usually the type of `D`, but can be any string.
      - parameter name: An optional name to disambiguate similar `type`s.
      */
-    public static func register<D>(instance: D, type: String = String(D), name: String? = nil) {
+    public static func register<D>(instance: D, type: String = String(reflecting: D.self), name: String? = nil) {
         register(type: type, name: name, cached: true) { instance }
     }
     
@@ -104,7 +104,7 @@ public struct DependencyResolver {
      - note: The value of `cached` is meaningful only if parallelled by a previous
      registration where `cached` was set to `true`. Otherwise it has no effect.
      */
-    public static func resolve<P, D>(parameters: P, type: String = String(D), name: String? = nil, cached: Bool = true) -> D? {
+    public static func resolve<P, D>(parameters: P, type: String = String(reflecting: D.self), name: String? = nil, cached: Bool = true) -> D? {
         let key = Key(type: type, name: name)
         guard let dependency = dependencies[key] else { return nil }
         return (dependency.resolve(parameters, cached: cached) as D)
@@ -123,7 +123,7 @@ public struct DependencyResolver {
      - note: The value of `cached` is meaningful only if parallelled by a previous
      registration where `cached` was set to `true`. Otherwise it has no effect.
      */
-    public static func resolve<D>(type type: String = String(D), name: String? = nil, cached: Bool = true) -> D? {
+    public static func resolve<D>(type type: String = String(reflecting: D.self), name: String? = nil, cached: Bool = true) -> D? {
         return resolve((), type: type, name: name, cached: cached)
     }
     
