@@ -14,7 +14,7 @@ import Foundation
  of `type` and `name` must be unique. Registering the same `type`
  and `name` **overwrites** the previous registration.
  */
-public struct DependencyResolver {
+public struct Guise {
     
     private struct Key: Hashable {
         let type: String
@@ -129,7 +129,7 @@ public struct DependencyResolver {
     
 }
 
-private func ==(lhs: DependencyResolver.Key, rhs: DependencyResolver.Key) -> Bool {
+private func ==(lhs: Guise.Key, rhs: Guise.Key) -> Bool {
     if lhs.hashValue != rhs.hashValue { return false }
     if lhs.type != rhs.type { return false }
     if lhs.name != rhs.name { return false }

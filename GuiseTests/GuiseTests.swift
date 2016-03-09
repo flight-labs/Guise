@@ -13,33 +13,33 @@ class GuiseTests: XCTestCase {
     
     override class func setUp() {
         super.setUp()
-        DependencyResolver.register{ ServerCommunicator(widgetCount: 3) as ServerCommunicating }
-        DependencyResolver.register(name: "sc2") { () -> ServerCommunicating in
-            let eight = DependencyResolver.resolve(name: "8")! as Int
+        Guise.register{ ServerCommunicator(widgetCount: 3) as ServerCommunicating }
+        Guise.register(name: "sc2") { () -> ServerCommunicating in
+            let eight = Guise.resolve(name: "8")! as Int
             return ServerCommunicator(widgetCount: eight)
         }
-        DependencyResolver.register(name: "sc3") { (count: Int) in ServerCommunicator(widgetCount: count) as ServerCommunicating }
-        DependencyResolver.register(8, name: "8") // Any type can be registered
+        Guise.register(name: "sc3") { (count: Int) in ServerCommunicator(widgetCount: count) as ServerCommunicating }
+        Guise.register(8, name: "8") // Any type can be registered
     }
     
     func testResolveServerCommunicator() {
-        let serverCommunicator = DependencyResolver.resolve()! as ServerCommunicating
+        let serverCommunicator = Guise.resolve()! as ServerCommunicating
         XCTAssertEqual(serverCommunicator.retrieveWidgetCount(), 3)
     }
     
     func testResolveNamedServerCommunicator() {
-        let serverCommunicator = DependencyResolver.resolve(name: "sc2")! as ServerCommunicating
+        let serverCommunicator = Guise.resolve(name: "sc2")! as ServerCommunicating
         XCTAssertEqual(serverCommunicator.retrieveWidgetCount(), 8)
     }
     
     func testResolveParameterizedNamedServerCommunicator() {
         let count = 9
-        let serverCommunicator = DependencyResolver.resolve(count, name: "sc3")! as ServerCommunicating
+        let serverCommunicator = Guise.resolve(count, name: "sc3")! as ServerCommunicating
         XCTAssertEqual(serverCommunicator.retrieveWidgetCount(), count)
     }
     
     func testResolveInt() {
-        let eight = DependencyResolver.resolve(name: "8")! as Int
+        let eight = Guise.resolve(name: "8")! as Int
         XCTAssertEqual(eight, 8)
     }
 }
