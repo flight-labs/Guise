@@ -1,13 +1,13 @@
 Guise is an elegant, flexible, type-safe dependency resolution framework for Swift.
 
-- [x] Flexible dependency creation, with optional caching
+- [x] Flexible dependency resolution, with optional caching
 - [x] Simplifies unit testing
 - [x] Pass arbitrary state when resolving
 - [x] Support for iOS and OSX
 
 ### Usage
 
-Guise supports two basic operations: registration and resolution. Registration is the act of registering a block whose return type is used as a key when resolution is needed. Resolution is the act of calling the registered lambda and returning its result.
+Guise supports two basic operations: registration and resolution. Registration is the act of registering a block whose return type is used as a key when resolution is needed. Resolution is the act of calling the registered block and returning its result.
 
 ```swift
 Guise.register { Service() }
@@ -27,7 +27,7 @@ Guise.register { Service() as Servicing }
 let service = Guise.resolve()! as Servicing
 ```
 
-Here, `Servicing` is a protocol. Guise hides the underlying type we are actually using so that we can easily replace it—for example, in unit tests.
+Here, `Servicing` is a protocol. Guise hides the underlying type we are actually using so that we can easily replace it—for example, in unit tests:
 
 ```swift
 Guise.register { FakeService() as Servicing }
@@ -37,13 +37,13 @@ let service = Guise.resolve()! as Servicing
 
 #### Caching
 
-One common scenario is that we want to cache the result of the block and thereafter return only that instance. This is supported with the `cached` parameter:
+One common scenario is that we want to cache the result of the block and thereafter return only that result. This is supported with the `cached` parameter:
 
 ```swift
 Guise.register(cached: true) { Service() as Servicing }
 ```
 
-This lazily creates our `Servicing` instance the first time one is needed. After that, the same instance is returned every time. It is possible when resolving to tell Guise _not_ to return the cached instance, but instead to call the block again. _This does not overwrite the existing cached instance, if any._
+This lazily creates our `Servicing` instance the first time one is needed. After that, the same instance is returned every time. It is possible when resolving to tell Guise _not_ to return the cached result, but instead to call the block again. _This does not overwrite the existing cached result, if any._
 
 ```swift
 let service = Guise.resolve(cached: false)! as Servicing
@@ -59,8 +59,7 @@ Guise.register { service as Servicing }
 then all talk of caching is irrelevant, because the same instance is returned every time. In fact, this is such a common case that Guise has an overload for it:
 
 ```swift
-let service = Service()
-Guise.register(service as Servicing)
+Guise.register(Service() as Servicing)
 ```
 
 #### Passing State
@@ -116,4 +115,4 @@ It is the combination of the type and the name that forms the registration key. 
 
 ### Resolution vs Injection
 
-Dependency resolution is inferior to dependency injection, because it creates a dependency on the resolver. Unfortunately, as of this writing, Swift does not support the features necessary to make dependency injection possible.
+Dependency resolution is inferior to dependency injection, because it creates a dependency on the resolver. Unfortunately, as of this writing, Swift does not support the features necessary to make dependency injection possible. As soon as it does, I will transform Guise into a dependency injection framework!
