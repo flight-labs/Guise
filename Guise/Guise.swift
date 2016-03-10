@@ -65,12 +65,12 @@ public struct Guise {
     private init() {}
     
     /**
-     Registers `create` with the DependencyResolver.
+     Registers `create` with Guise.
      
      - parameter type: Usually the type of `D`, but can be any string.
      - parameter name: An optional name to disambiguate similar `type`s.
      - parameter cached: Whether or not the instance is lazily created and then cached.
-     - parameter create: The lambda to register with the DependencyResolver.
+     - parameter create: The lambda to register with Guise.
      */
     public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, cached: Bool = false, create: P -> D) {
         let key = Key(type: type, name: name)
@@ -78,7 +78,7 @@ public struct Guise {
     }
     
     /**
-     Registers an existing instance with the DependencyResolver.
+     Registers an existing instance with Guise.
      
      - note: This effectively creates a singleton. If you want your singleton created lazily,
      register it with a lambda and set `cached` to true.
@@ -92,7 +92,7 @@ public struct Guise {
     }
     
     /**
-     Resolves an instance of `D` in the DependencyResolver.
+     Resolves an instance of `D` in Guise.
      
      - parameter parameters: The parameters to pass to the registered lambda.
      - parameter type: Usually the type of `D`, can be any string.
@@ -111,7 +111,7 @@ public struct Guise {
     }
     
     /**
-     Resolves an instance of `D` in the DependencyResolver.
+     Resolves an instance of `D` in Guise.
      
      - parameter parameters: The parameters to pass to the registered lambda.
      - parameter type: Usually the type of `D`, can be any string.
