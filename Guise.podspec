@@ -25,6 +25,8 @@ Pod::Spec.new do |s|
   #   * Write the description between the DESC delimiters below.
   #   * Finally, don't worry about the indent, CocoaPods strips it!
   s.description  = <<-DESC
+Guise is an elegant, flexible, type-safe dependency resolution framework for Swift.
+It allows caching, simplifies unit testing, and allows your application to be more loosely coupled.
                    DESC
 
   s.homepage     = "https://github.com/Prosumma/Guise"
@@ -90,7 +92,7 @@ Pod::Spec.new do |s|
   #  Not including the public_header_files will make all headers public.
   #
 
-  s.source_files  = "CoreDataQueryInterface"
+  s.source_files  = "Guise"
 
   # s.public_header_files = "Classes/**/*.h"
 
