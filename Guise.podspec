@@ -29,7 +29,7 @@ Guise is an elegant, flexible, type-safe dependency resolution framework for Swi
 It allows caching, simplifies unit testing, and allows your application to be more loosely coupled.
                    DESC
 
-  s.homepage     = "https://github.com/Prosumma/Guise"
+  s.homepage     = "https://github.com/Prosumma/Guise.git"
   s.social_media_url = 'http://twitter.com/prosumma'
   # s.screenshots  = "www.example.com/screenshots_1.gif", "www.example.com/screenshots_2.gif"
 
