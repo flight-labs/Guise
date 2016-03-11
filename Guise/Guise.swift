@@ -100,7 +100,7 @@ public struct Guise {
     private init() {}
     
     /**
-     Registers `eval` with Guise.
+     Registers the block `eval` with Guise.
      
      - parameter type: Usually the type of `D`, but can be any string.
      - parameter name: An optional name to disambiguate similar `type`s.
