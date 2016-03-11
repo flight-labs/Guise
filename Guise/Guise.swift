@@ -396,8 +396,8 @@ public struct Container {
      - parameter type: The type of the dependency to unregister.
      - parameter name: The name of the dependency to unregister (optional).
      */
-    public func unregister(type type: String, name: String? = nil) {
-        Guise.unregister(type: type, name: name, container: container)
+    public func unregister(type type: String, name: String? = nil) -> Bool {
+        return Guise.unregister(type: type, name: name, container: container)
     }
     
     /**
@@ -413,8 +413,8 @@ public struct Container {
      originally register the block. The block can take a parameter just like the registration
      block, but it is ignored.
      */
-    public func unregister<P, D>(name name: String? = nil, eval: P -> D) {
-        Guise.unregister(name: name, container: container, eval: eval)
+    public func unregister<P, D>(name name: String? = nil, eval: P -> D) -> Bool {
+        return Guise.unregister(name: name, container: container, eval: eval)
     }
     
     /**
