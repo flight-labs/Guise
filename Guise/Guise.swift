@@ -101,6 +101,7 @@ public struct Guise {
     }
     
     private static var dependencies = [Key: Dependency]()
+    private static let queue = dispatch_queue_create(nil, DISPATCH_QUEUE_CONCURRENT)
     
     private init() {}
     
@@ -119,7 +120,9 @@ public struct Guise {
      */
     public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .NotCached, eval: P -> D) -> Any {
         let key = Key(type: type, name: name, container: container)
-        dependencies[key] = Dependency(lifecycle: lifecycle, eval: eval)
+        dispatch_barrier_async(queue) {
+            dependencies[key] = Dependency(lifecycle: lifecycle, eval: eval)
+        }
         return key
     }
     
@@ -150,7 +153,11 @@ public struct Guise {
                 unregister(key)
             }
         }
-        return (dependency.resolve(parameter, lifecycle: lifecycle) as D)
+        var result: D!
+        dispatch_sync(queue) {
+            result = dependency.resolve(parameter, lifecycle: lifecycle) as D
+        }
+        return result
     }
     
     /**
@@ -203,7 +210,11 @@ public struct Guise {
     */
     public static func unregister(key: Any) -> Bool {
         if let key = key as? Key {
-            return dependencies.removeValueForKey(key) != nil
+            var unregistered: Bool = false
+            dispatch_barrier_sync(queue) {
+                unregistered = dependencies.removeValueForKey(key) != nil
+            }
+            return unregistered
         }
         return false
     }
@@ -241,16 +252,20 @@ public struct Guise {
      Clears all dependencies from Guise.
     */
     public static func reset() {
-        dependencies = [:]
+        dispatch_barrier_async(queue) {
+            dependencies = [:]
+        }
     }
     
     /**
      Clears all dependencies in the given container from Guise.
     */
     public static func reset(container: String?) {
-        for key in dependencies.keys {
-            if key.container == container {
-                dependencies.removeValueForKey(key)
+        dispatch_barrier_async(queue) {
+            for key in dependencies.keys {
+                if key.container == container {
+                    dependencies.removeValueForKey(key)
+                }
             }
         }
     }
