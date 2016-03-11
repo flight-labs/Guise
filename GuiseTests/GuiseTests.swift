@@ -35,7 +35,7 @@ class GuiseTests: XCTestCase {
             return ServerCommunicator(widgetCount: eight)
         }
         Guise.register(name: "sc3") { (count: Int) in ServerCommunicator(widgetCount: count) as ServerCommunicating }
-        Guise.register(8, name: "8") // Any type can be registered
+        Guise.register(name: "8", lifecycle: .Once) { 8 }
         let container = Guise.container("foo")
         container.register(lifecycle: .Once) { ServerCommunicator(widgetCount: 18) as ServerCommunicating }
     }
@@ -45,17 +45,7 @@ class GuiseTests: XCTestCase {
         let serverCommunicator = container.resolve()! as ServerCommunicating
         XCTAssertEqual(serverCommunicator.retrieveWidgetCount(), 18)
     }
-    
-    func testResolveServerCommunicator() {
-        let expectation = expectationWithDescription("yeah")
-        Guise.resolve { (serverCommunicator: ServerCommunicating?) in
-            guard let serverCommunicator = serverCommunicator else { return }
-            print(serverCommunicator.retrieveWidgetCount())
-            expectation.fulfill()
-        }
-        waitForExpectationsWithTimeout(1, handler: nil)
-    }
-    
+
     func testResolveNamedServerCommunicator() {
         let serverCommunicator = Guise.resolve(name: "sc2")! as ServerCommunicating
         XCTAssertEqual(serverCommunicator.retrieveWidgetCount(), 8)
@@ -65,10 +55,5 @@ class GuiseTests: XCTestCase {
         let count = 9
         let serverCommunicator = Guise.resolve(count, name: "sc3")! as ServerCommunicating
         XCTAssertEqual(serverCommunicator.retrieveWidgetCount(), count)
-    }
-    
-    func testResolveInt() {
-        let eight = Guise.resolve(name: "8")! as Int
-        XCTAssertEqual(eight, 8)
     }
 }

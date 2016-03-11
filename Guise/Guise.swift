@@ -51,12 +51,12 @@ public enum Lifecycle {
  */
 public struct Guise {
     
-    private struct Key: Hashable {
+    public struct Key: Hashable {
         let container: String?
         let type: String
         let name: String?
         
-        init(type: String, name: String? = nil, container: String? = nil) {
+        private init(type: String, name: String? = nil, container: String? = nil) {
             self.type = type
             self.name = name
             self.container = container
@@ -73,7 +73,7 @@ public struct Guise {
             hashValue = hash
         }
         
-        let hashValue: Int
+        public let hashValue: Int
     }
     
     private class Dependency {
@@ -100,10 +100,16 @@ public struct Guise {
         }
     }
     
+    private static let lock = NSObject()
     private static var dependencies = [Key: Dependency]()
-    private static let depqueue = dispatch_queue_create(nil, DISPATCH_QUEUE_CONCURRENT)
     
     private init() {}
+    
+    private static func synchronize(block: () -> Void) {
+        objc_sync_enter(lock)
+        defer { objc_sync_exit(lock) }
+        block()
+    }
     
     /**
      Registers the block `eval` with Guise.
@@ -119,9 +125,9 @@ public struct Guise {
      
      - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
-    public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .NotCached, eval: P -> D) -> Any {
+    public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .NotCached, eval: P -> D) -> Key {
         let key = Key(type: type, name: name, container: container)
-        dispatch_barrier_async(depqueue) {
+        synchronize {
             dependencies[key] = Dependency(lifecycle: lifecycle, eval: eval)
         }
         return key
@@ -142,7 +148,7 @@ public struct Guise {
      
      - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
-    public static func register<D>(instance: D, type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil) -> Any {
+    public static func register<D>(instance: D, type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil) -> Key {
         return register(type: type, name: name, container: container, lifecycle: .Cached) { instance }
     }
     
@@ -160,39 +166,12 @@ public struct Guise {
      dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
     */
-    public static func resolve<P, D>(parameter: P, key: Any, lifecycle: Lifecycle = .Cached) -> D? {
-        guard let key = key as? Key else { return nil }
+    public static func resolve<P, D>(parameter: P, key: Key, lifecycle: Lifecycle = .Cached) -> D? {
         guard let dependency = dependencies[key] else { return nil }
-        defer {
-            if lifecycle == .Once || dependency.lifecycle == .Once {
-                unregister(key)
-            }
+        if lifecycle == .Once || dependency.lifecycle == .Once {
+            synchronize { dependencies.removeValueForKey(key) }
         }
-        var result: D!
-        dispatch_sync(depqueue) {
-            result = dependency.resolve(parameter, lifecycle: lifecycle) as D
-        }
-        return result
-    }
-    
-    public static func resolve<P, D>(parameter: P, key: Any, lifecycle: Lifecycle = .Cached, queue: dispatch_queue_t = dispatch_get_main_queue(), callback: D? -> Void) {
-        dispatch_async(depqueue) {
-            guard let key = key as? Key else {
-                dispatch_async(queue) {
-                    callback(nil)
-                }
-                return
-            }
-            guard let dependency = dependencies[key] else {
-                dispatch_async(queue) {
-                    callback(nil)
-                }
-                return
-            }
-            dispatch_async(queue) {
-                callback(dependency.resolve(parameter, lifecycle: lifecycle) as D)
-            }
-        }
+        return (dependency.resolve(parameter, lifecycle: lifecycle) as D)
     }
     
     /**
@@ -217,11 +196,6 @@ public struct Guise {
         return resolve(parameter, key: key, lifecycle: lifecycle)
     }
     
-    public static func resolve<P, D>(parameter: P, type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .Cached, queue: dispatch_queue_t = dispatch_get_main_queue(), callback: D? -> Void) {
-        let key = Key(type: type, name: name, container: container)
-        resolve(parameter, key: key, lifecycle: lifecycle, queue: queue, callback: callback)
-    }
-    
     /**
      Resolves an instance of `D` in Guise.
      
@@ -242,26 +216,33 @@ public struct Guise {
     public static func resolve<D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
         return resolve((), type: type, name: name, container: container, lifecycle: lifecycle)
     }
+
+    public static func resolve<P>(keys: [Key], parameter: P, lifecycle: Lifecycle = .Cached) -> [Key: Any] {
+        var deps = [(Key, Dependency)]()
+        synchronize {
+            deps = dependencies.filter{ keys.contains($0.0) }
+            for (key, dependency) in deps {
+                if lifecycle == .Once || dependency.lifecycle == .Once {
+                    dependencies.removeValueForKey(key)
+                }
+            }
+        }
+        var results = [Key: Any]()
+        for (key, dependency) in deps {
+            results[key] = dependency.resolve(parameter, lifecycle: lifecycle) as Any
+        }
+        return results
+    }
     
-    public static func resolve<D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .Cached, queue: dispatch_queue_t = dispatch_get_main_queue(), callback: D? -> Void) {
-        let key = Key(type: type, name: name, container: container)
-        resolve((), key: key, lifecycle: lifecycle, queue: queue, callback: callback)
+    public static func resolve(keys: [Key], lifecycle: Lifecycle = .Cached) -> [Key: Any] {
+        return resolve(keys, parameter: (), lifecycle: lifecycle)
     }
     
     /**
      Unregisters the dependency with the given key.
-     
-     - returns: Whether or not the key was present and could be unregistered.
     */
-    public static func unregister(key: Any) -> Bool {
-        if let key = key as? Key {
-            var unregistered: Bool = false
-            dispatch_barrier_sync(depqueue) {
-                unregistered = dependencies.removeValueForKey(key) != nil
-            }
-            return unregistered
-        }
-        return false
+    public static func unregister(key: Key) {
+        synchronize { dependencies.removeValueForKey(key) }
     }
 
     /**
@@ -269,12 +250,10 @@ public struct Guise {
      
      - parameter type: The type of the dependency to unregister.
      - parameter name: The name of the dependency to unregister (optional).
-     
-     - returns: Whether or not the key was present and could be unregistered.
     */
-    public static func unregister(type type: String, name: String? = nil, container: String? = nil) -> Bool {
+    public static func unregister(type type: String, name: String? = nil, container: String? = nil) {
         let key = Key(type: type, name: name, container: container)
-        return unregister(key)
+        unregister(key)
     }
     
     /**
@@ -283,36 +262,40 @@ public struct Guise {
      - parameter name: The optional name under which the dependency was registered.
      - parameter eval: A block (not called) used to determine the type that was registered.
      
-     - returns: Whether or not the key was present and could be unregistered.
-     
      - note: The block is never called. It is only used to determine the type used to
      originally register the block. The block can take a parameter just like the registration
      block, but it is ignored.
     */
-    public static func unregister<P, D>(name name: String? = nil, container: String? = nil, eval: P -> D) -> Bool {
-        return unregister(type: String(reflecting: D.self), name: name, container: container)
+    public static func unregister<P, D>(name name: String? = nil, container: String? = nil, eval: P -> D) {
+        unregister(type: String(reflecting: D.self), name: name, container: container)
     }
     
     /**
      Clears all dependencies from Guise.
     */
     public static func reset() {
-        dispatch_barrier_async(depqueue) {
-            dependencies = [:]
-        }
+        synchronize { dependencies = [:] }
     }
     
     /**
      Clears all dependencies in the given container from Guise.
     */
     public static func reset(container: String?) {
-        dispatch_barrier_async(depqueue) {
+        synchronize {
             for key in dependencies.keys {
                 if key.container == container {
                     dependencies.removeValueForKey(key)
                 }
             }
         }
+    }
+    
+    public static func key(type type: String, name: String? = nil, container: String? = nil) -> Key {
+        return Key(type: type, name: name, container: container)
+    }
+    
+    public static func key<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, eval: P -> D) -> Key {
+        return Key(type: type, name: name, container: container)
     }
     
     public static func container(name: String?) -> Container {
@@ -407,11 +390,9 @@ public struct Container {
      
      - parameter type: The type of the dependency to unregister.
      - parameter name: The name of the dependency to unregister (optional).
-     
-     - returns: Whether or not the key was present and could be unregistered.
      */
-    public func unregister(type type: String, name: String? = nil) -> Bool {
-        return Guise.unregister(type: type, name: name, container: container)
+    public func unregister(type type: String, name: String? = nil) {
+        Guise.unregister(type: type, name: name, container: container)
     }
     
     /**
@@ -427,8 +408,8 @@ public struct Container {
      originally register the block. The block can take a parameter just like the registration
      block, but it is ignored.
      */
-    public func unregister<P, D>(name name: String? = nil, eval: P -> D) -> Bool {
-        return Guise.unregister(name: name, container: container, eval: eval)
+    public func unregister<P, D>(name name: String? = nil, eval: P -> D) {
+        Guise.unregister(name: name, container: container, eval: eval)
     }
     
     /**
@@ -440,7 +421,7 @@ public struct Container {
     
 }
 
-private func ==(lhs: Guise.Key, rhs: Guise.Key) -> Bool {
+public func ==(lhs: Guise.Key, rhs: Guise.Key) -> Bool {
     if lhs.hashValue != rhs.hashValue { return false }
     if lhs.type != rhs.type { return false }
     if lhs.name != rhs.name { return false }
