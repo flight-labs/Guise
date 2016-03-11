@@ -47,8 +47,13 @@ class GuiseTests: XCTestCase {
     }
     
     func testResolveServerCommunicator() {
-        let serverCommunicator = Guise.resolve()! as ServerCommunicating
-        XCTAssertEqual(serverCommunicator.retrieveWidgetCount(), 3)
+        let expectation = expectationWithDescription("yeah")
+        Guise.resolve { (serverCommunicator: ServerCommunicating?) in
+            guard let serverCommunicator = serverCommunicator else { return }
+            print(serverCommunicator.retrieveWidgetCount())
+            expectation.fulfill()
+        }
+        waitForExpectationsWithTimeout(1, handler: nil)
     }
     
     func testResolveNamedServerCommunicator() {

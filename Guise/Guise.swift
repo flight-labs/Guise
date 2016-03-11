@@ -101,7 +101,7 @@ public struct Guise {
     }
     
     private static var dependencies = [Key: Dependency]()
-    private static let queue = dispatch_queue_create(nil, DISPATCH_QUEUE_CONCURRENT)
+    private static let depqueue = dispatch_queue_create(nil, DISPATCH_QUEUE_CONCURRENT)
     
     private init() {}
     
@@ -112,6 +112,7 @@ public struct Guise {
      - parameter name: An optional name to disambiguate similar `type`s.
      - parameter container: A named container into which to place the dependency.
      - parameter lifecycle: The lifecyle of the registered dependency.
+     - paramater queue: The GCD queue on which to call the `eval` block.
      - parameter eval: The block to register with Guise.
      
      - returns: The registration key, which can be used with `unregister`.
@@ -120,7 +121,7 @@ public struct Guise {
      */
     public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .NotCached, eval: P -> D) -> Any {
         let key = Key(type: type, name: name, container: container)
-        dispatch_barrier_async(queue) {
+        dispatch_barrier_async(depqueue) {
             dependencies[key] = Dependency(lifecycle: lifecycle, eval: eval)
         }
         return key
@@ -145,6 +146,20 @@ public struct Guise {
         return register(type: type, name: name, container: container, lifecycle: .Cached) { instance }
     }
     
+    /**
+     Resolves an instance of `D` in Guise.
+     
+     - parameter key: The key with which `D` was registered.
+     - parameter lifecycle: The desired lifecyle of the registered dependency.
+     
+     - returns: The result of the registered block, or nil if not registered.
+     
+     - note: The meaning of `lifecycle` here is a bit complex. If `.Once` is passed, the dependency is returned and
+     then immediately unregistered, regardless of how it was originally registered. If `.Cached` (the default) is passed and
+     the dependency was originally registered with `.Cached`, a cached a value is returned. If `.NotCached` is passed and the
+     dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
+     other cases, a new value is calculated by invoking the registered block.
+    */
     public static func resolve<P, D>(parameter: P, key: Any, lifecycle: Lifecycle = .Cached) -> D? {
         guard let key = key as? Key else { return nil }
         guard let dependency = dependencies[key] else { return nil }
@@ -154,10 +169,30 @@ public struct Guise {
             }
         }
         var result: D!
-        dispatch_sync(queue) {
+        dispatch_sync(depqueue) {
             result = dependency.resolve(parameter, lifecycle: lifecycle) as D
         }
         return result
+    }
+    
+    public static func resolve<P, D>(parameter: P, key: Any, lifecycle: Lifecycle = .Cached, queue: dispatch_queue_t = dispatch_get_main_queue(), callback: D? -> Void) {
+        dispatch_async(depqueue) {
+            guard let key = key as? Key else {
+                dispatch_async(queue) {
+                    callback(nil)
+                }
+                return
+            }
+            guard let dependency = dependencies[key] else {
+                dispatch_async(queue) {
+                    callback(nil)
+                }
+                return
+            }
+            dispatch_async(queue) {
+                callback(dependency.resolve(parameter, lifecycle: lifecycle) as D)
+            }
+        }
     }
     
     /**
@@ -182,6 +217,11 @@ public struct Guise {
         return resolve(parameter, key: key, lifecycle: lifecycle)
     }
     
+    public static func resolve<P, D>(parameter: P, type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .Cached, queue: dispatch_queue_t = dispatch_get_main_queue(), callback: D? -> Void) {
+        let key = Key(type: type, name: name, container: container)
+        resolve(parameter, key: key, lifecycle: lifecycle, queue: queue, callback: callback)
+    }
+    
     /**
      Resolves an instance of `D` in Guise.
      
@@ -203,6 +243,11 @@ public struct Guise {
         return resolve((), type: type, name: name, container: container, lifecycle: lifecycle)
     }
     
+    public static func resolve<D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .Cached, queue: dispatch_queue_t = dispatch_get_main_queue(), callback: D? -> Void) {
+        let key = Key(type: type, name: name, container: container)
+        resolve((), key: key, lifecycle: lifecycle, queue: queue, callback: callback)
+    }
+    
     /**
      Unregisters the dependency with the given key.
      
@@ -211,7 +256,7 @@ public struct Guise {
     public static func unregister(key: Any) -> Bool {
         if let key = key as? Key {
             var unregistered: Bool = false
-            dispatch_barrier_sync(queue) {
+            dispatch_barrier_sync(depqueue) {
                 unregistered = dependencies.removeValueForKey(key) != nil
             }
             return unregistered
@@ -252,7 +297,7 @@ public struct Guise {
      Clears all dependencies from Guise.
     */
     public static func reset() {
-        dispatch_barrier_async(queue) {
+        dispatch_barrier_async(depqueue) {
             dependencies = [:]
         }
     }
@@ -261,7 +306,7 @@ public struct Guise {
      Clears all dependencies in the given container from Guise.
     */
     public static func reset(container: String?) {
-        dispatch_barrier_async(queue) {
+        dispatch_barrier_async(depqueue) {
             for key in dependencies.keys {
                 if key.container == container {
                     dependencies.removeValueForKey(key)
