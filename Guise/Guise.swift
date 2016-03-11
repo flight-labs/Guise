@@ -111,6 +111,12 @@ public struct Guise {
         block()
     }
     
+    private static func synchronize<T>(block: () -> T) -> T {
+        objc_sync_enter(lock)
+        defer { objc_sync_exit(lock) }
+        return block()
+    }
+    
     /**
      Registers the block `eval` with Guise.
      
@@ -118,7 +124,6 @@ public struct Guise {
      - parameter name: An optional name to disambiguate similar `type`s.
      - parameter container: A named container into which to place the dependency.
      - parameter lifecycle: The lifecyle of the registered dependency.
-     - paramater queue: The GCD queue on which to call the `eval` block.
      - parameter eval: The block to register with Guise.
      
      - returns: The registration key, which can be used with `unregister`.
@@ -241,8 +246,8 @@ public struct Guise {
     /**
      Unregisters the dependency with the given key.
     */
-    public static func unregister(key: Key) {
-        synchronize { dependencies.removeValueForKey(key) }
+    public static func unregister(key: Key) -> Bool {
+        return synchronize { dependencies.removeValueForKey(key) != nil }
     }
 
     /**
@@ -251,9 +256,9 @@ public struct Guise {
      - parameter type: The type of the dependency to unregister.
      - parameter name: The name of the dependency to unregister (optional).
     */
-    public static func unregister(type type: String, name: String? = nil, container: String? = nil) {
+    public static func unregister(type type: String, name: String? = nil, container: String? = nil) -> Bool {
         let key = Key(type: type, name: name, container: container)
-        unregister(key)
+        return unregister(key)
     }
     
     /**
@@ -266,8 +271,8 @@ public struct Guise {
      originally register the block. The block can take a parameter just like the registration
      block, but it is ignored.
     */
-    public static func unregister<P, D>(name name: String? = nil, container: String? = nil, eval: P -> D) {
-        unregister(type: String(reflecting: D.self), name: name, container: container)
+    public static func unregister<P, D>(name name: String? = nil, container: String? = nil, eval: P -> D) -> Bool {
+        return unregister(type: String(reflecting: D.self), name: name, container: container)
     }
     
     /**
