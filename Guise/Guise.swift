@@ -39,7 +39,7 @@ public enum Lifecycle {
     /**
      The dependency is completely removed after it is resolved the first time.
     */
-    case OneTime
+    case Once
 }
 
 /**
@@ -108,6 +108,8 @@ public struct Guise {
      - parameter eval: The block to register with Guise.
      
      - returns: The registration key, which can be used with `unregister`.
+     
+     - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
     public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle = .NotCached, eval: P -> D) -> Any {
         let key = Key(type: type, name: name)
@@ -119,13 +121,15 @@ public struct Guise {
      Registers an existing instance with Guise.
      
      - note: This effectively creates a singleton. If you want your singleton created lazily,
-     register it with a block and set `cached` to true.
+     register it with a block and set `lifecycle` to `.Cached`.
      
      - parameter instance: The instance to register.
      - parameter type: Usually the type of `D`, but can be any string.
-     - parameter name: An optional name to disambiguate similar `type`s.
+     - parameter name: An optional name to disambiguate the same `type`.
      
      - returns: The registration key, which can be used with `unregister`.
+     
+     - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
     public static func register<D>(instance: D, type: String = String(reflecting: D.self), name: String? = nil) -> Any {
         return register(type: type, name: name, lifecycle: .Cached) { instance }
@@ -136,22 +140,22 @@ public struct Guise {
      
      - parameter parameters: The parameters to pass to the registered block.
      - parameter type: Usually the type of `D`, can be any string.
-     - parameter lifecycle: The lifecyle of the registered dependency.
-     - parameter cached: Prefer a cached value if available.
+     - parameter name: An optional name to disambiguate the same `type`.
+     - parameter lifecycle: The desired lifecyle of the registered dependency.
      
      - returns: The result of the registered block, or nil if not registered.
      
-     - note: The meaning of `lifecycle` here is a bit complex. If `.OneTime` is passed, the dependency is returned and
-     then immediately unregistered, regardless of how it was originally registered. If .Cached (the default) is passed and
-     the dependency was originally registered with .Cached, a cached a value is returned. If .NotCached is passed and the
-     dependency was originally registered with .Cached, the cached value is ignored and a new value is calculated. In all
+     - note: The meaning of `lifecycle` here is a bit complex. If `.Once` is passed, the dependency is returned and
+     then immediately unregistered, regardless of how it was originally registered. If `.Cached` (the default) is passed and
+     the dependency was originally registered with `.Cached`, a cached a value is returned. If `.NotCached` is passed and the
+     dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
      */
     public static func resolve<P, D>(parameters: P, type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
         let key = Key(type: type, name: name)
         guard let dependency = dependencies[key] else { return nil }
         defer {
-            if lifecycle == .OneTime || dependency.lifecycle == .OneTime {
+            if lifecycle == .Once || dependency.lifecycle == .Once {
                 unregister(key)
             }
         }
@@ -168,10 +172,10 @@ public struct Guise {
      
      - returns: The result of the registered block, or nil if not registered.
      
-     - note: The meaning of `lifecycle` here is a bit complex. If `.OneTime` is passed, the dependency is returned and
-     then immediately unregistered, regardless of how it was originally registered. If .Cached (the default) is passed and
-     the dependency was originally registered with .Cached, a cached a value is returned. If .NotCached is passed and the
-     dependency was originally registered with .Cached, the cached value is ignored and a new value is calculated. In all
+     - note: The meaning of `lifecycle` here is a bit complex. If `.Once` is passed, the dependency is returned and
+     then immediately unregistered, regardless of how it was originally registered. If `.Cached` (the default) is passed and
+     the dependency was originally registered with `.Cached`, a cached a value is returned. If `.NotCached` is passed and the
+     dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
      */
     public static func resolve<D>(type type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
@@ -212,7 +216,8 @@ public struct Guise {
      - returns: Whether or not the key was present and could be unregistered.
      
      - note: The block is never called. It is only used to determine the type used to
-     originally register the block.
+     originally register the block. The block can take a parameter just like the registration
+     block, but it is ignored.
     */
     public static func unregister<P, D>(name: String? = nil, eval: P -> D) -> Bool {
         return unregister(type: String(reflecting: D.self), name: name)
