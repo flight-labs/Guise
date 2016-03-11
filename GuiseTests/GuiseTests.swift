@@ -36,6 +36,14 @@ class GuiseTests: XCTestCase {
         }
         Guise.register(name: "sc3") { (count: Int) in ServerCommunicator(widgetCount: count) as ServerCommunicating }
         Guise.register(8, name: "8") // Any type can be registered
+        let container = Guise.container("foo")
+        container.register(lifecycle: .Once) { ServerCommunicator(widgetCount: 18) as ServerCommunicating }
+    }
+    
+    func testResolveFooServerCommunicator() {
+        let container = Guise.container("foo")
+        let serverCommunicator = container.resolve()! as ServerCommunicating
+        XCTAssertEqual(serverCommunicator.retrieveWidgetCount(), 18)
     }
     
     func testResolveServerCommunicator() {
