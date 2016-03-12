@@ -173,8 +173,8 @@ public struct Guise {
      dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
     */
-    public static func resolve<D>(parameter: Any, key: Key, lifecycle: Lifecycle = .Cached) -> D? {
-        guard let dependency = dependencies[key] else { return nil }
+    public static func resolve<D>(key: Key, parameter: Any = (), lifecycle: Lifecycle = .Cached) -> D? {
+        guard let dependency = synchronize({ dependencies[key] }) else { return nil }
         if lifecycle == .Once || dependency.lifecycle == .Once {
             synchronize { dependencies.removeValueForKey(key) }
         }
@@ -198,51 +198,37 @@ public struct Guise {
      dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
      */
-    public static func resolve<D>(parameter: Any, type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
+    public static func resolve<D>(parameter: Any = (), type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
         let key = Key(type: type, name: name, container: container)
-        return resolve(parameter, key: key, lifecycle: lifecycle)
+        return resolve(key, parameter: parameter, lifecycle: lifecycle)
     }
     
     /**
-     Resolves an instance of `D` in Guise.
-     
-     - parameter parameters: The parameters to pass to the registered block.
-     - parameter type: Usually the type of `D`, can be any string.
-     - parameter name: An optional name to disambiguate similar `type`s.
-     - parameter container: The dependency's registered container.
-     - parameter lifecycle: The desired lifecycle of the registered dependency.
-     
-     - returns: The result of the registered block, or nil if not registered.
-     
-     - note: The meaning of `lifecycle` here is a bit complex. If `.Once` is passed, the dependency is returned and
-     then immediately unregistered, regardless of how it was originally registered. If `.Cached` (the default) is passed and
-     the dependency was originally registered with `.Cached`, a cached a value is returned. If `.NotCached` is passed and the
-     dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
-     other cases, a new value is calculated by invoking the registered block.
-     */
-    public static func resolve<D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
-        return resolve((), type: type, name: name, container: container, lifecycle: lifecycle)
-    }
-
-    public static func resolve(keys: [Key], parameter: Any, lifecycle: Lifecycle = .Cached) -> [Key: Any] {
-        var deps = [(Key, Dependency)]()
-        synchronize {
-            deps = dependencies.filter{ keys.contains($0.0) }
-            for (key, dependency) in deps {
+     Resolves many keys at once.
+    */
+    public static func resolve(keys: [Key: (parameter: Any, lifecycle: Lifecycle)]) -> [Key: Any] {
+        return synchronize {
+            var results = [Key: Any]()
+            for (key, (parameter: parameter, lifecycle: lifecycle)) in keys {
+                guard let dependency = dependencies[key] else { continue }
                 if lifecycle == .Once || dependency.lifecycle == .Once {
                     dependencies.removeValueForKey(key)
                 }
+                results[key] = dependency.resolve(parameter, lifecycle: lifecycle)
             }
+            return results
         }
-        var results = [Key: Any]()
-        for (key, dependency) in deps {
-            results[key] = dependency.resolve(parameter, lifecycle: lifecycle) as Any
-        }
-        return results
     }
-    
-    public static func resolve(keys: [Key], lifecycle: Lifecycle = .Cached) -> [Key: Any] {
-        return resolve(keys, parameter: (), lifecycle: lifecycle)
+
+    /**
+     Resolves many keys at once.
+    */
+    public static func resolve(keys: Set<Key>, parameter: Any = (), lifecycle: Lifecycle = .Cached) -> [Key: Any] {
+        var fullKeys = [Key: (parameter: Any, lifecycle: Lifecycle)]()
+        for key in keys {
+            fullKeys[key] = (parameter: parameter, lifecycle: lifecycle)
+        }
+        return resolve(fullKeys)
     }
     
     /**
