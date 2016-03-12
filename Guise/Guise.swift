@@ -52,9 +52,9 @@ public enum Lifecycle {
 public struct Guise {
     
     public struct Key: Hashable {
-        private let container: String?
-        private let type: String
-        private let name: String?
+        public let container: String?
+        public let type: String
+        public let name: String?
         
         private init(type: String, name: String? = nil, container: String? = nil) {
             self.type = type
@@ -86,15 +86,15 @@ public struct Guise {
             self.eval = { param in eval(param as! P) }
         }
         
-        func resolve<P, D>(parameters: P, lifecycle: Lifecycle) -> D {
+        func resolve<D>(parameter: Any, lifecycle: Lifecycle) -> D {
             var result: D
             if lifecycle != .NotCached && self.lifecycle == .Cached {
                 if instance == nil {
-                    instance = eval(parameters)
+                    instance = eval(parameter)
                 }
                 result = instance! as! D
             } else {
-                result = eval(parameters) as! D
+                result = eval(parameter) as! D
             }
             return result
         }
@@ -173,7 +173,7 @@ public struct Guise {
      dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
     */
-    public static func resolve<P, D>(parameter: P, key: Key, lifecycle: Lifecycle = .Cached) -> D? {
+    public static func resolve<D>(parameter: Any, key: Key, lifecycle: Lifecycle = .Cached) -> D? {
         guard let dependency = dependencies[key] else { return nil }
         if lifecycle == .Once || dependency.lifecycle == .Once {
             synchronize { dependencies.removeValueForKey(key) }
@@ -198,7 +198,7 @@ public struct Guise {
      dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
      */
-    public static func resolve<P, D>(parameter: P, type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
+    public static func resolve<D>(parameter: Any, type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
         let key = Key(type: type, name: name, container: container)
         return resolve(parameter, key: key, lifecycle: lifecycle)
     }
@@ -224,7 +224,7 @@ public struct Guise {
         return resolve((), type: type, name: name, container: container, lifecycle: lifecycle)
     }
 
-    public static func resolve<P>(keys: [Key], parameter: P, lifecycle: Lifecycle = .Cached) -> [Key: Any] {
+    public static func resolve(keys: [Key], parameter: Any, lifecycle: Lifecycle = .Cached) -> [Key: Any] {
         var deps = [(Key, Dependency)]()
         synchronize {
             deps = dependencies.filter{ keys.contains($0.0) }
@@ -370,7 +370,7 @@ public struct Container {
      dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
      */
-    public func resolve<P, D>(parameter: P, type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
+    public func resolve<D>(parameter: Any, type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
         return Guise.resolve(parameter, type: type, name: name, container: container, lifecycle: lifecycle)
     }
     
