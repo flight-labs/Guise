@@ -52,9 +52,9 @@ public enum Lifecycle {
 public struct Guise {
     
     public struct Key: Hashable {
-        let container: String?
-        let type: String
-        let name: String?
+        private let container: String?
+        private let type: String
+        private let name: String?
         
         private init(type: String, name: String? = nil, container: String? = nil) {
             self.type = type
@@ -105,12 +105,14 @@ public struct Guise {
     
     private init() {}
     
+    // TODO: Replace this with reader/writer lock from Big Nerd Ranch: https://github.com/bignerdranch/Deferred
     private static func synchronize(block: () -> Void) {
         objc_sync_enter(lock)
         defer { objc_sync_exit(lock) }
         block()
     }
-    
+
+    // TODO: Replace this with reader/writer lock from Big Nerd Ranch: https://github.com/bignerdranch/Deferred
     private static func synchronize<T>(block: () -> T) -> T {
         objc_sync_enter(lock)
         defer { objc_sync_exit(lock) }
@@ -303,17 +305,19 @@ public struct Guise {
         return Key(type: type, name: name, container: container)
     }
     
-    public static func container(name: String?) -> Container {
-        return Container(name: name)
+    public static func container(name: String?, lifecycle: Lifecycle = .NotCached) -> Container {
+        return Container(name: name, lifecycle: lifecycle)
     }
 }
 
 public struct Container {
     
     public let container: String?
+    public let lifecycle: Lifecycle
     
-    private init(name: String?) {
+    private init(name: String?, lifecycle: Lifecycle) {
         self.container = name
+        self.lifecycle = lifecycle
     }
     
     /**
@@ -328,8 +332,8 @@ public struct Container {
      
      - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
-    public func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle = .NotCached, eval: P -> D) -> Any {
-        return Guise.register(type: type, name: name, container: container, lifecycle: lifecycle, eval: eval)
+    public func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle? = nil, eval: P -> D) -> Any {
+        return Guise.register(type: type, name: name, container: container, lifecycle: lifecycle ?? self.lifecycle, eval: eval)
     }
     
     /**
@@ -418,10 +422,18 @@ public struct Container {
     }
     
     /**
-     Clears all dependencies from Guise.
+     Clears all dependencies in this container from Guise.
      */
     public func reset() {
         Guise.reset(container)
+    }
+
+    public func key(type type: String, name: String? = nil) -> Guise.Key {
+        return Guise.key(type: type, name: name, container: container)
+    }
+    
+    public func key<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, eval: P -> D) -> Guise.Key {
+        return Guise.key(type: type, name: name, container: container)
     }
     
 }
