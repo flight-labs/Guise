@@ -51,30 +51,9 @@ public enum Lifecycle {
  */
 public struct Guise {
     
-    public struct Key: Hashable {
-        public let container: String?
-        public let type: String
-        public let name: String?
-        
-        private init(type: String, name: String? = nil, container: String? = nil) {
-            self.type = type
-            self.name = name
-            self.container = container
-            // djb2 hash algorithm: http://www.cse.yorku.ca/~oz/hash.html
-            // &+ operator handles Int overflow
-            var hash = 5381
-            hash = ((hash << 5) &+ hash) &+ type.hashValue
-            if let name = name {
-                hash = ((hash << 5) &+ hash) &+ name.hashValue
-            }
-            if let container = container {
-                hash = ((hash << 5) &+ hash) &+ container.hashValue
-            }
-            hashValue = hash
-        }
-        
-        public let hashValue: Int
-    }
+    private init() {}
+    
+    // MARK: Dependencies
     
     private class Dependency {
         private let eval: Any -> Any
@@ -100,24 +79,32 @@ public struct Guise {
         }
     }
     
-    private static let lock = NSObject()
     private static var dependencies = [Key: Dependency]()
     
-    private init() {}
+    // MARK: Locking
     
-    // TODO: Replace this with reader/writer lock from Big Nerd Ranch: https://github.com/bignerdranch/Deferred
-    private static func synchronize(block: () -> Void) {
-        objc_sync_enter(lock)
-        defer { objc_sync_exit(lock) }
-        block()
-    }
-
-    // TODO: Replace this with reader/writer lock from Big Nerd Ranch: https://github.com/bignerdranch/Deferred
-    private static func synchronize<T>(block: () -> T) -> T {
-        objc_sync_enter(lock)
-        defer { objc_sync_exit(lock) }
+    private static var lock: UnsafeMutablePointer<pthread_rwlock_t> = {
+        var lock = UnsafeMutablePointer<pthread_rwlock_t>.alloc(1)
+        let status = pthread_rwlock_init(lock, nil)
+        assert(status == 0)
+        return lock
+    }()
+    
+    private static func withLock<T>(acquire: UnsafeMutablePointer<pthread_rwlock_t> -> Int32, @noescape block: () -> T) -> T {
+        acquire(lock)
+        defer { pthread_rwlock_unlock(lock) }
         return block()
     }
+    
+    private static func withReadLock<T>(@noescape block: () -> T) -> T {
+        return withLock(pthread_rwlock_rdlock, block: block)
+    }
+    
+    private static func withWriteLock<T>(@noescape block: () -> T) -> T {
+        return withLock(pthread_rwlock_wrlock, block: block)
+    }
+    
+    // MARK: Registration
     
     /**
      Registers the block `eval` with Guise.
@@ -134,7 +121,7 @@ public struct Guise {
      */
     public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .NotCached, eval: P -> D) -> Key {
         let key = Key(type: type, name: name, container: container)
-        synchronize {
+        withWriteLock {
             dependencies[key] = Dependency(lifecycle: lifecycle, eval: eval)
         }
         return key
@@ -160,6 +147,40 @@ public struct Guise {
     }
     
     /**
+     Unregisters the dependency with the given key.
+     */
+    public static func unregister(key: Key) -> Bool {
+        return withWriteLock { dependencies.removeValueForKey(key) != nil }
+    }
+    
+    /**
+     Unregisters the dependency with the given type and name.
+     
+     - parameter type: The type of the dependency to unregister.
+     - parameter name: The name of the dependency to unregister (optional).
+     */
+    public static func unregister(type type: String, name: String? = nil, container: String? = nil) -> Bool {
+        let key = Key(type: type, name: name, container: container)
+        return unregister(key)
+    }
+    
+    /**
+     Unregisters the dependency with the given name and type, as determined by the `eval` block.
+     
+     - parameter name: The optional name under which the dependency was registered.
+     - parameter eval: A block (not called) used to determine the type that was registered.
+     
+     - note: The block is never called. It is only used to determine the type used to
+     originally register the block. The block can take a parameter just like the registration
+     block, but it is ignored.
+     */
+    public static func unregister<P, D>(name name: String? = nil, container: String? = nil, @noescape eval: P -> D) -> Bool {
+        return unregister(type: String(reflecting: D.self), name: name, container: container)
+    }
+    
+    // MARK: Resolution
+    
+    /**
      Resolves an instance of `D` in Guise.
      
      - parameter key: The key with which `D` was registered.
@@ -174,9 +195,9 @@ public struct Guise {
      other cases, a new value is calculated by invoking the registered block.
     */
     public static func resolve<D>(key: Key, parameter: Any = (), lifecycle: Lifecycle = .Cached) -> D? {
-        guard let dependency = synchronize({ dependencies[key] }) else { return nil }
+        guard let dependency = withReadLock({ dependencies[key] }) else { return nil }
         if lifecycle == .Once || dependency.lifecycle == .Once {
-            synchronize { dependencies.removeValueForKey(key) }
+            withWriteLock { dependencies.removeValueForKey(key) }
         }
         return (dependency.resolve(parameter, lifecycle: lifecycle) as D)
     }
@@ -203,56 +224,53 @@ public struct Guise {
         return resolve(key, parameter: parameter, lifecycle: lifecycle)
     }
     
-    /**
-     Unregisters the dependency with the given key.
-    */
-    public static func unregister(key: Key) -> Bool {
-        return synchronize { dependencies.removeValueForKey(key) != nil }
-    }
-
-    /**
-     Unregisters the dependency with the given type and name.
-     
-     - parameter type: The type of the dependency to unregister.
-     - parameter name: The name of the dependency to unregister (optional).
-    */
-    public static func unregister(type type: String, name: String? = nil, container: String? = nil) -> Bool {
-        let key = Key(type: type, name: name, container: container)
-        return unregister(key)
-    }
-    
-    /**
-     Unregisters the dependency with the given name and type, as determined by the `eval` block.
-     
-     - parameter name: The optional name under which the dependency was registered.
-     - parameter eval: A block (not called) used to determine the type that was registered.
-     
-     - note: The block is never called. It is only used to determine the type used to
-     originally register the block. The block can take a parameter just like the registration
-     block, but it is ignored.
-    */
-    public static func unregister<P, D>(name name: String? = nil, container: String? = nil, @noescape eval: P -> D) -> Bool {
-        return unregister(type: String(reflecting: D.self), name: name, container: container)
-    }
+    // MARK: Reset
     
     /**
      Clears all dependencies from Guise.
     */
     public static func reset() {
-        synchronize { dependencies = [:] }
+        withWriteLock { dependencies = [:] }
     }
     
     /**
      Clears all dependencies in the given container from Guise.
     */
     public static func reset(container: String?) {
-        synchronize {
+        withWriteLock {
             for key in dependencies.keys {
                 if key.container == container {
                     dependencies.removeValueForKey(key)
                 }
             }
         }
+    }
+    
+    // MARK: Keys
+    
+    public struct Key: Hashable {
+        public let container: String?
+        public let type: String
+        public let name: String?
+        
+        private init(type: String, name: String? = nil, container: String? = nil) {
+            self.type = type
+            self.name = name
+            self.container = container
+            // djb2 hash algorithm: http://www.cse.yorku.ca/~oz/hash.html
+            // &+ operator handles Int overflow
+            var hash = 5381
+            hash = ((hash << 5) &+ hash) &+ type.hashValue
+            if let name = name {
+                hash = ((hash << 5) &+ hash) &+ name.hashValue
+            }
+            if let container = container {
+                hash = ((hash << 5) &+ hash) &+ container.hashValue
+            }
+            hashValue = hash
+        }
+        
+        public let hashValue: Int
     }
     
     public static func key(type type: String, name: String? = nil, container: String? = nil) -> Key {
