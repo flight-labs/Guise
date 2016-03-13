@@ -326,7 +326,7 @@ public struct Container {
      
      - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
-    public func register<D>(instance: D, type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil) -> Any {
+    public func register<D>(instance: D, type: String = String(reflecting: D.self), name: String? = nil) -> Any {
         return register(type: type, name: name, lifecycle: .Cached) { instance }
     }
     
