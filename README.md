@@ -1,3 +1,8 @@
+[![Build Status](https://travis-ci.org/Prosumma/Guise.svg)](https://travis-ci.org/Prosumma/Guise)
+[![CocoaPods compatible](https://img.shields.io/cocoapods/v/Guise.svg)](https://cocoapods.org)
+[![Carthage compatible](https://img.shields.io/badge/Carthage-compatible-4BC51D.svg?style=flat)](https://github.com/Carthage/Carthage)
+![Platforms](https://img.shields.io/cocoapods/p/Guise.svg)
+
 Guise is an elegant, flexible, type-safe dependency resolution framework for Swift.
 
 - [x] Flexible dependency resolution, with optional caching
