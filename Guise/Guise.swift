@@ -204,34 +204,6 @@ public struct Guise {
     }
     
     /**
-     Resolves many keys at once.
-    */
-    public static func resolve(keys: [Key: (parameter: Any, lifecycle: Lifecycle)]) -> [Key: Any] {
-        return synchronize {
-            var results = [Key: Any]()
-            for (key, (parameter: parameter, lifecycle: lifecycle)) in keys {
-                guard let dependency = dependencies[key] else { continue }
-                if lifecycle == .Once || dependency.lifecycle == .Once {
-                    dependencies.removeValueForKey(key)
-                }
-                results[key] = dependency.resolve(parameter, lifecycle: lifecycle)
-            }
-            return results
-        }
-    }
-
-    /**
-     Resolves many keys at once.
-    */
-    public static func resolve(keys: Set<Key>, parameter: Any = (), lifecycle: Lifecycle = .Cached) -> [Key: Any] {
-        var fullKeys = [Key: (parameter: Any, lifecycle: Lifecycle)]()
-        for key in keys {
-            fullKeys[key] = (parameter: parameter, lifecycle: lifecycle)
-        }
-        return resolve(fullKeys)
-    }
-    
-    /**
      Unregisters the dependency with the given key.
     */
     public static func unregister(key: Key) -> Bool {
@@ -259,7 +231,7 @@ public struct Guise {
      originally register the block. The block can take a parameter just like the registration
      block, but it is ignored.
     */
-    public static func unregister<P, D>(name name: String? = nil, container: String? = nil, eval: P -> D) -> Bool {
+    public static func unregister<P, D>(name name: String? = nil, container: String? = nil, @noescape eval: P -> D) -> Bool {
         return unregister(type: String(reflecting: D.self), name: name, container: container)
     }
     
@@ -287,7 +259,7 @@ public struct Guise {
         return Key(type: type, name: name, container: container)
     }
     
-    public static func key<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, eval: P -> D) -> Key {
+    public static func key<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, @noescape eval: P -> D) -> Key {
         return Key(type: type, name: name, container: container)
     }
     
@@ -403,7 +375,7 @@ public struct Container {
      originally register the block. The block can take a parameter just like the registration
      block, but it is ignored.
      */
-    public func unregister<P, D>(name name: String? = nil, eval: P -> D) -> Bool {
+    public func unregister<P, D>(name name: String? = nil, @noescape eval: P -> D) -> Bool {
         return Guise.unregister(name: name, container: container, eval: eval)
     }
     
@@ -418,7 +390,7 @@ public struct Container {
         return Guise.key(type: type, name: name, container: container)
     }
     
-    public func key<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, eval: P -> D) -> Guise.Key {
+    public func key<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, @noescape eval: P -> D) -> Guise.Key {
         return Guise.key(type: type, name: name, container: container)
     }
     
