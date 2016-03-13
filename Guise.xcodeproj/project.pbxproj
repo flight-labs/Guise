@@ -45,6 +45,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F37B73E81C952B7B00A9AEFA /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		F3BACFC71C95059600BE0148 /* GuiseTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GuiseTests.swift; sourceTree = "<group>"; };
 		F3BACFCA1C95067400BE0148 /* Database.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
 		F3BACFCD1C9507DD00BE0148 /* Server.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Server.swift; sourceTree = "<group>"; };
@@ -100,6 +101,7 @@
 		F3C3ED641C8D64FE00FD8E4D = {
 			isa = PBXGroup;
 			children = (
+				F37B73E81C952B7B00A9AEFA /* README.md */,
 				F3C3ED701C8D64FF00FD8E4D /* Guise */,
 				F3C3ED7C1C8D64FF00FD8E4D /* GuiseTests */,
 				F3C3ED901C8D695C00FD8E4D /* Guise */,
