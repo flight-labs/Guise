@@ -54,7 +54,10 @@ public struct Guise {
     private init() {}
     
     // MARK: Dependencies
-    
+
+    /**
+     A type-erasing thunk over the `resolve` block, with metadata.
+    */
     private class Dependency {
         private let resolve: Any -> Any
         private let lifecycle: Lifecycle
@@ -209,7 +212,7 @@ public struct Guise {
      - parameter parameter: The parameter to pass to the registered block.
      - parameter type: Usually the type of `D`, can be any string.
      - parameter name: An optional name to disambiguate the same `type`.
-     - parameter container: The dependency's registered container.     
+     - parameter container: The dependency's registered container.
      - parameter lifecycle: The desired lifecyle of the registered dependency.
      
      - returns: The result of the registered block, or nil if not registered.
