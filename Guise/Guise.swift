@@ -56,24 +56,24 @@ public struct Guise {
     // MARK: Dependencies
     
     private class Dependency {
-        private let eval: Any -> Any
+        private let resolve: Any -> Any
         private let lifecycle: Lifecycle
         private var instance: Any?
         
-        init<P, D>(lifecycle: Lifecycle, eval: P -> D) {
+        init<P, D>(lifecycle: Lifecycle, resolve: P -> D) {
             self.lifecycle = lifecycle
-            self.eval = { param in eval(param as! P) }
+            self.resolve = { param in resolve(param as! P) }
         }
         
         func resolve<D>(parameter: Any, lifecycle: Lifecycle) -> D {
             var result: D
             if lifecycle != .NotCached && self.lifecycle == .Cached {
                 if instance == nil {
-                    instance = eval(parameter)
+                    instance = resolve(parameter)
                 }
                 result = instance! as! D
             } else {
-                result = eval(parameter) as! D
+                result = resolve(parameter) as! D
             }
             return result
         }
@@ -82,6 +82,7 @@ public struct Guise {
     private static var dependencies = [Key: Dependency]()
     
     // MARK: Locking
+    // Inspired by some of John Gallagher's locking code in the excellent Deferred library at https://github.com/bignerdranch/Deferred
     
     private static var lock: UnsafeMutablePointer<pthread_rwlock_t> = {
         var lock = UnsafeMutablePointer<pthread_rwlock_t>.alloc(1)
@@ -107,22 +108,22 @@ public struct Guise {
     // MARK: Registration
     
     /**
-     Registers the block `eval` with Guise.
+     Registers the block `resolve` with Guise.
      
      - parameter type: Usually the type of `D`, but can be any string.
      - parameter name: An optional name to disambiguate similar `type`s.
      - parameter container: A named container into which to place the dependency.
      - parameter lifecycle: The lifecyle of the registered dependency.
-     - parameter eval: The block to register with Guise.
+     - parameter resolve: The block to register with Guise.
      
      - returns: The registration key, which can be used with `unregister`.
      
      - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
-    public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .NotCached, eval: P -> D) -> Key {
+    public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .NotCached, resolve: P -> D) -> Key {
         let key = Key(type: type, name: name, container: container)
         withWriteLock {
-            dependencies[key] = Dependency(lifecycle: lifecycle, eval: eval)
+            dependencies[key] = Dependency(lifecycle: lifecycle, resolve: resolve)
         }
         return key
     }
@@ -165,16 +166,16 @@ public struct Guise {
     }
     
     /**
-     Unregisters the dependency with the given name and type, as determined by the `eval` block.
+     Unregisters the dependency with the given name and type, as determined by the `resolve` block.
      
      - parameter name: The optional name under which the dependency was registered.
-     - parameter eval: A block (not called) used to determine the type that was registered.
+     - parameter resolve: A block (not called) used to determine the type that was registered.
      
      - note: The block is never called. It is only used to determine the type used to
      originally register the block. The block can take a parameter just like the registration
      block, but it is ignored.
      */
-    public static func unregister<P, D>(name name: String? = nil, container: String? = nil, @noescape eval: P -> D) -> Bool {
+    public static func unregister<P, D>(name name: String? = nil, container: String? = nil, @noescape resolve: P -> D) -> Bool {
         return unregister(type: String(reflecting: D.self), name: name, container: container)
     }
     
@@ -246,45 +247,53 @@ public struct Guise {
         }
     }
     
-    // MARK: Keys
-    
-    public struct Key: Hashable {
-        public let container: String?
-        public let type: String
-        public let name: String?
-        
-        private init(type: String, name: String? = nil, container: String? = nil) {
-            self.type = type
-            self.name = name
-            self.container = container
-            // djb2 hash algorithm: http://www.cse.yorku.ca/~oz/hash.html
-            // &+ operator handles Int overflow
-            var hash = 5381
-            hash = ((hash << 5) &+ hash) &+ type.hashValue
-            if let name = name {
-                hash = ((hash << 5) &+ hash) &+ name.hashValue
-            }
-            if let container = container {
-                hash = ((hash << 5) &+ hash) &+ container.hashValue
-            }
-            hashValue = hash
-        }
-        
-        public let hashValue: Int
-    }
-    
-    public static func key(type type: String, name: String? = nil, container: String? = nil) -> Key {
-        return Key(type: type, name: name, container: container)
-    }
-    
-    public static func key<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, @noescape eval: P -> D) -> Key {
-        return Key(type: type, name: name, container: container)
-    }
+    // MARK: Containers
     
     public static func container(name: String?, lifecycle: Lifecycle = .NotCached) -> Container {
         return Container(name: name, lifecycle: lifecycle)
     }
 }
+
+// MARK: - Keys
+
+public struct Key: Hashable {
+    public let container: String?
+    public let type: String
+    public let name: String?
+    
+    public init(type: String, name: String? = nil, container: String? = nil) {
+        self.type = type
+        self.name = name
+        self.container = container
+        // djb2 hash algorithm: http://www.cse.yorku.ca/~oz/hash.html
+        // &+ operator handles Int overflow
+        var hash = 5381
+        hash = ((hash << 5) &+ hash) &+ type.hashValue
+        if let name = name {
+            hash = ((hash << 5) &+ hash) &+ name.hashValue
+        }
+        if let container = container {
+            hash = ((hash << 5) &+ hash) &+ container.hashValue
+        }
+        hashValue = hash
+    }
+    
+    public init<P, D>(type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, @noescape resolve: P -> D) {
+        self.init(type: type, name: name, container: container)
+    }
+    
+    public let hashValue: Int
+}
+
+public func ==(lhs: Key, rhs: Key) -> Bool {
+    if lhs.hashValue != rhs.hashValue { return false }
+    if lhs.type != rhs.type { return false }
+    if lhs.name != rhs.name { return false }
+    if lhs.container != rhs.container { return false }
+    return true
+}
+
+// MARK: - Containers
 
 public struct Container {
     
@@ -296,20 +305,22 @@ public struct Container {
         self.lifecycle = lifecycle
     }
     
+    // MARK: Registration
+    
     /**
-     Registers the block `eval` in the current Guise container.
+     Registers the block `resolve` in the current Guise container.
      
      - parameter type: Usually the type of `D`, but can be any string.
      - parameter name: An optional name to disambiguate similar `type`s.
      - parameter lifecycle: The lifecyle of the registered dependency.
-     - parameter eval: The block to register with Guise.
+     - parameter resolve: The block to register with Guise.
      
      - returns: The registration key, which can be used with `unregister`.
      
      - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
-    public func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle? = nil, eval: P -> D) -> Any {
-        return Guise.register(type: type, name: name, container: container, lifecycle: lifecycle ?? self.lifecycle, eval: eval)
+    public func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle? = nil, resolve: P -> D) -> Any {
+        return Guise.register(type: type, name: name, container: container, lifecycle: lifecycle ?? self.lifecycle, resolve: resolve)
     }
     
     /**
@@ -329,6 +340,35 @@ public struct Container {
     public func register<D>(instance: D, type: String = String(reflecting: D.self), name: String? = nil) -> Any {
         return register(type: type, name: name, lifecycle: .Cached) { instance }
     }
+    
+    /**
+     Unregisters the dependency with the given type and name from the current Guise container.
+     
+     - parameter type: The type of the dependency to unregister.
+     - parameter name: The name of the dependency to unregister (optional).
+     */
+    public func unregister(type type: String, name: String? = nil) -> Bool {
+        return Guise.unregister(type: type, name: name, container: container)
+    }
+    
+    /**
+     Unregisters the dependency with the given name and type, as determined by the `resolve` block,
+     from the current Guise container.
+     
+     - parameter name: The optional name under which the dependency was registered.
+     - parameter resolve: A block (not called) used to determine the type that was registered.
+     
+     - returns: Whether or not the key was present and could be unregistered.
+     
+     - note: The block is never called. It is only used to determine the type used to
+     originally register the block. The block can take a parameter just like the registration
+     block, but it is ignored.
+     */
+    public func unregister<P, D>(name name: String? = nil, @noescape resolve: P -> D) -> Bool {
+        return Guise.unregister(name: name, container: container, resolve: resolve)
+    }
+    
+    // MARK: Resolution
     
     /**
      Resolves an instance of `D` in the current Guise container.
@@ -370,32 +410,7 @@ public struct Container {
         return resolve((), type: type, name: name, lifecycle: lifecycle)
     }
     
-    /**
-     Unregisters the dependency with the given type and name from the current Guise container.
-     
-     - parameter type: The type of the dependency to unregister.
-     - parameter name: The name of the dependency to unregister (optional).
-     */
-    public func unregister(type type: String, name: String? = nil) -> Bool {
-        return Guise.unregister(type: type, name: name, container: container)
-    }
-    
-    /**
-     Unregisters the dependency with the given name and type, as determined by the `eval` block,
-     from the current Guise container.
-     
-     - parameter name: The optional name under which the dependency was registered.
-     - parameter eval: A block (not called) used to determine the type that was registered.
-     
-     - returns: Whether or not the key was present and could be unregistered.
-     
-     - note: The block is never called. It is only used to determine the type used to
-     originally register the block. The block can take a parameter just like the registration
-     block, but it is ignored.
-     */
-    public func unregister<P, D>(name name: String? = nil, @noescape eval: P -> D) -> Bool {
-        return Guise.unregister(name: name, container: container, eval: eval)
-    }
+    // MARK: Reset
     
     /**
      Clears all dependencies in this container from Guise.
@@ -403,21 +418,15 @@ public struct Container {
     public func reset() {
         Guise.reset(container)
     }
+    
+    // MARK: Keys
 
-    public func key(type type: String, name: String? = nil) -> Guise.Key {
-        return Guise.key(type: type, name: name, container: container)
+    public func key(type type: String, name: String? = nil) -> Key {
+        return Key(type: type, name: name, container: container)
     }
     
-    public func key<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, @noescape eval: P -> D) -> Guise.Key {
-        return Guise.key(type: type, name: name, container: container)
+    public func key<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, @noescape resolve: P -> D) -> Key {
+        return Key(type: type, name: name, container: container)
     }
     
-}
-
-public func ==(lhs: Guise.Key, rhs: Guise.Key) -> Bool {
-    if lhs.hashValue != rhs.hashValue { return false }
-    if lhs.type != rhs.type { return false }
-    if lhs.name != rhs.name { return false }
-    if lhs.container != rhs.container { return false }
-    return true
 }
