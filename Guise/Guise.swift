@@ -121,7 +121,7 @@ public struct Guise {
      - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
     public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .NotCached, resolve: P -> D) -> Key {
-        let key = Key(type: type, name: name, container: container)
+        let key = Key(type: type, name: name, container: container, resolve: resolve)
         withWriteLock {
             dependencies[key] = Dependency(lifecycle: lifecycle, resolve: resolve)
         }
@@ -209,8 +209,8 @@ public struct Guise {
      - parameter parameter: The parameter to pass to the registered block.
      - parameter type: Usually the type of `D`, can be any string.
      - parameter name: An optional name to disambiguate the same `type`.
+     - parameter container: The dependency's registered container.     
      - parameter lifecycle: The desired lifecyle of the registered dependency.
-     - parameter container: The dependency's registered container.
      
      - returns: The result of the registered block, or nil if not registered.
      
@@ -393,7 +393,6 @@ public struct Container {
     /**
      Resolves an instance of `D` in the current Guise container.
      
-     - parameter parameters: The parameters to pass to the registered block.
      - parameter type: Usually the type of `D`, can be any string.
      - parameter name: An optional name to disambiguate similar `type`s.
      - parameter lifecycle: The desired lifecycle of the registered dependency.
