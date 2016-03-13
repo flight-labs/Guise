@@ -71,6 +71,20 @@ let service = Guise.resolve(lifecycle: .Once)! as Servicing // Returned and remo
 Guise.register(42, name: "level", lifecycle: .Once) // Register an Int named "level" that is removed right after it is resolved
 ```
 
+The lifecycle can be specified when registering and when resolving. Here is what happens:
+
+| Registering | Resolving | Effect |
+| ----------- | --------- | ------ |
+| `.NotCached` | `.NotCached` | resolution block is called |
+| `.NotCached` | `.Cached` | resolution block is called; `.Cached` ignored |
+| `.NotCached` | `.Once` | resolution block is called; dependency removed |
+| `.Cached` | `.NotCached` | resolution block is called; `.Cached` ignored |
+| `.Cached` | `.Cached` | cached value returned |
+| `.Cached` | `.Once` | cached value returned; dependency removed |
+| `.Once` | _any_ | resolution block is called; dependency removed |
+
+Cached values are resolved lazily, so obviously "cached value returned" implies that the resolution block will be called if the cached value has not yet been calculated.
+
 #### Passing State
 
 Another common scenario is passing state when resolving an instance. Perhaps our `Service` has a constructor that requires some value(s):
