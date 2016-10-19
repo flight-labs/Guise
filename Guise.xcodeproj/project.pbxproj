@@ -879,6 +879,7 @@
 				PRODUCT_NAME = Guise;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 3.0;
 			};
 			name = Debug;
 		};
@@ -900,6 +901,7 @@
 				PRODUCT_NAME = Guise;
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 3.0;
 			};
 			name = Release;
 		};
@@ -944,6 +946,7 @@
 				F343A9FE1DB7867600B1000F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F3700B771DB7826A00DDB218 /* Build configuration list for PBXNativeTarget "Guise tvOS" */ = {
 			isa = XCConfigurationList;
