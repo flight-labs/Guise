@@ -12,7 +12,8 @@ Guise is an elegant, flexible, type-safe dependency resolution framework for Swi
 - [x] Simplifies unit testing
 - [x] Support for containers, named dependencies, and arbitrary types
 - [x] Pass arbitrary state when resolving
-- [x] Support for iOS and OSX
+- [x] Swift 3
+- [x] Support for iOS 9+, macOS 10.11+, watchOS 2+, tvOS 9+ 
 
 ### Usage
 
@@ -49,13 +50,13 @@ let service = Guise.resolve()! as Servicing
 One common scenario is that we want to cache the result of the block and thereafter return only that result. This is supported with the `lifecycle` parameter:
 
 ```swift
-Guise.register(lifecycle: .Cached) { Service() as Servicing }
+Guise.register(lifecycle: .cached) { Service() as Servicing }
 ```
 
 This lazily creates our `Servicing` instance the first time one is needed. After that, the same instance is returned every time. It is possible when resolving to tell Guise _not_ to return the cached result, but instead to call the block again. _This does not overwrite the existing cached result, if any._
 
 ```swift
-let service = Guise.resolve(lifecycle: .NotCached)! as Servicing
+let service = Guise.resolve(lifecycle: .notCached)! as Servicing
 ```
 
 Keep in mind that Guise registers blocks, _not_ instances. If we do something like this…
@@ -71,25 +72,25 @@ then all talk of caching is irrelevant, because the same instance is returned ev
 Guise.register(Service() as Servicing) // Note, however, that this dependency is not created lazily, but eagerly
 ```
 
-There are three possible `Lifecycle` values: `.NotCached` (the default), `.Cached`, and `.Once`. The meaning of the first two should be clear at this point. `.Once` means that the dependency is removed right after it is resolved. If you pass `.Once` when resolving, the dependency is also removed after it is resolved, even if it was registered as `.Cached` or `.NotCached`.
+There are three possible `Lifecycle` values: `.notCached` (the default), `.cached`, and `.once`. The meaning of the first two should be clear at this point. `.once` means that the dependency is removed right after it is resolved. If you pass `.once` when resolving, the dependency is also removed after it is resolved, even if it was registered as `.cached` or `.notCached`.
 
 ```swift
-Guise.register(lifecycle: .Cached) { Service() as Servicing } // Register a lazily created, cached dependency of type Servicing
-let service = Guise.resolve(lifecycle: .Once)! as Servicing // Returned and removed
-Guise.register(42, name: "level", lifecycle: .Once) // Register an Int named "level" that is removed right after it is resolved
+Guise.register(lifecycle: .cached) { Service() as Servicing } // Register a lazily created, cached dependency of type Servicing
+let service = Guise.resolve(lifecycle: .once)! as Servicing // Returned and removed
+Guise.register(42, name: "level", lifecycle: .once) // Register an Int named "level" that is removed right after it is resolved
 ```
 
 The lifecycle can be specified when registering and when resolving. Here is what happens:
 
 | Registering | Resolving | Effect |
 | ----------- | --------- | ------ |
-| `.NotCached` | `.NotCached` | resolution block is called |
-| `.NotCached` | `.Cached` | resolution block is called; `.Cached` ignored |
-| `.NotCached` | `.Once` | resolution block is called; dependency removed |
-| `.Cached` | `.NotCached` | resolution block is called; `.Cached` ignored |
-| `.Cached` | `.Cached` | cached value returned |
-| `.Cached` | `.Once` | cached value returned; dependency removed |
-| `.Once` | _any_ | resolution block is called; dependency removed |
+| `.notCached` | `.notCached` | resolution block is called |
+| `.notCached` | `.cached` | resolution block is called; `.cached` ignored |
+| `.notCached` | `.once` | resolution block is called; dependency removed |
+| `.cached` | `.notCached` | resolution block is called; `.cached` ignored |
+| `.cached` | `.cached` | cached value returned |
+| `.cached` | `.once` | cached value returned; dependency removed |
+| `.once` | _any_ | resolution block is called; dependency removed |
 
 Cached values are resolved lazily, so obviously "cached value returned" implies that the resolution block will be called if the cached value has not yet been calculated.
 
@@ -131,7 +132,7 @@ It is possible to distinguish multiple similar registrations by using a name. Fo
 ```swift
 Guise.register(NSBundle.mainBundle(), name: "main")
 Guise.register(name: "parameterized") { (credentials: Credentials) in Authenticator(username: credentials.username, password: credentials.password) as Authenticating }
-Guise.register(cached: true) { Authenticator() as Authenticating }
+Guise.register(lifecycle: .cached) { Authenticator() as Authenticating }
 ```
 
 To resolve these instances:
@@ -188,9 +189,9 @@ container.register { Ding() as Dong }
 You can also use containers to register multiple dependencies with the same lifecycle, e.g.,
 
 ```swift
-let container = Guise.container(nil, lifecycle: .Once) // Gets the default container
-container.register(90, name: "argument1") // Register with .Once lifecycle
-container.register("age", name: "argument2") // Also registered with .Once lifecycle
+let container = Guise.container(nil, lifecycle: .once) // Gets the default container
+container.register(90, name: "argument1") // Register with .once lifecycle
+container.register("age", name: "argument2") // Also registered with .once lifecycle
 // However…
 Guise.register(42, name: "level") // Registered with .NotCached lifecycle in the default container
 ```
