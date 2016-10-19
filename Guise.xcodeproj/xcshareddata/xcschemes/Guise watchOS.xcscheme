@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F3700B651DB7826900DDB218"
+               BlueprintIdentifier = "F343A9EB1DB7867600B1000F"
                BuildableName = "Guise.framework"
-               BlueprintName = "Guise tvOS"
+               BlueprintName = "Guise watchOS"
                ReferencedContainer = "container:Guise.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -28,26 +28,7 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F3700B6D1DB7826900DDB218"
-               BuildableName = "GuiseTests.xctest"
-               BlueprintName = "GuiseTests tvOS"
-               ReferencedContainer = "container:Guise.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F3700B651DB7826900DDB218"
-            BuildableName = "Guise.framework"
-            BlueprintName = "Guise tvOS"
-            ReferencedContainer = "container:Guise.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
       <AdditionalOptions>
       </AdditionalOptions>
    </TestAction>
@@ -64,9 +45,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F3700B651DB7826900DDB218"
+            BlueprintIdentifier = "F343A9EB1DB7867600B1000F"
             BuildableName = "Guise.framework"
-            BlueprintName = "Guise tvOS"
+            BlueprintName = "Guise watchOS"
             ReferencedContainer = "container:Guise.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -82,9 +63,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F3700B651DB7826900DDB218"
+            BlueprintIdentifier = "F343A9EB1DB7867600B1000F"
             BuildableName = "Guise.framework"
-            BlueprintName = "Guise tvOS"
+            BlueprintName = "Guise watchOS"
             ReferencedContainer = "container:Guise.xcodeproj">
          </BuildableReference>
       </MacroExpansion>

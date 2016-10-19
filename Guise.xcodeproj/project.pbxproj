@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F343AA031DB7871400B1000F /* Guise.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C3ED881C8D65D100FD8E4D /* Guise.swift */; };
+		F343AA041DB7871A00B1000F /* Guise.h in Headers */ = {isa = PBXBuildFile; fileRef = F3C3ED711C8D64FF00FD8E4D /* Guise.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		F343AA051DB7871D00B1000F /* Guise.h in Headers */ = {isa = PBXBuildFile; fileRef = F3C3ED711C8D64FF00FD8E4D /* Guise.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F3700B6F1DB7826A00DDB218 /* Guise.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F3700B661DB7826900DDB218 /* Guise.framework */; };
 		F3700B7D1DB7829400DDB218 /* Guise.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C3ED881C8D65D100FD8E4D /* Guise.swift */; };
 		F3700B7E1DB7829E00DDB218 /* Guise.h in Headers */ = {isa = PBXBuildFile; fileRef = F3C3ED711C8D64FF00FD8E4D /* Guise.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -60,6 +63,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F343A9EC1DB7867600B1000F /* Guise.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Guise.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3700B661DB7826900DDB218 /* Guise.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Guise.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3700B6E1DB7826900DDB218 /* GuiseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GuiseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F37B73E81C952B7B00A9AEFA /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -80,6 +84,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		F343A9E81DB7867600B1000F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F3700B621DB7826900DDB218 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -147,6 +158,7 @@
 				F3C3ED981C8D695C00FD8E4D /* GuiseTests.xctest */,
 				F3700B661DB7826900DDB218 /* Guise.framework */,
 				F3700B6E1DB7826900DDB218 /* GuiseTests.xctest */,
+				F343A9EC1DB7867600B1000F /* Guise.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -178,6 +190,14 @@
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
+		F343A9E91DB7867600B1000F /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F343AA041DB7871A00B1000F /* Guise.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F3700B631DB7826900DDB218 /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
@@ -198,12 +218,31 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F343AA051DB7871D00B1000F /* Guise.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		F343A9EB1DB7867600B1000F /* Guise watchOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F343AA011DB7867600B1000F /* Build configuration list for PBXNativeTarget "Guise watchOS" */;
+			buildPhases = (
+				F343A9E71DB7867600B1000F /* Sources */,
+				F343A9E81DB7867600B1000F /* Frameworks */,
+				F343A9E91DB7867600B1000F /* Headers */,
+				F343A9EA1DB7867600B1000F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Guise watchOS";
+			productName = Guise;
+			productReference = F343A9EC1DB7867600B1000F /* Guise.framework */;
+			productType = "com.apple.product-type.framework";
+		};
 		F3700B651DB7826900DDB218 /* Guise tvOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F3700B771DB7826A00DDB218 /* Build configuration list for PBXNativeTarget "Guise tvOS" */;
@@ -322,6 +361,11 @@
 				LastUpgradeCheck = 0800;
 				ORGANIZATIONNAME = "Gregory Higley";
 				TargetAttributes = {
+					F343A9EB1DB7867600B1000F = {
+						CreatedOnToolsVersion = 8.0;
+						DevelopmentTeam = RWC7T4Z6DX;
+						ProvisioningStyle = Automatic;
+					};
 					F3700B651DB7826900DDB218 = {
 						CreatedOnToolsVersion = 8.0;
 						DevelopmentTeam = RWC7T4Z6DX;
@@ -366,11 +410,19 @@
 				F3C3ED971C8D695C00FD8E4D /* GuiseTests OSX */,
 				F3700B651DB7826900DDB218 /* Guise tvOS */,
 				F3700B6D1DB7826900DDB218 /* GuiseTests tvOS */,
+				F343A9EB1DB7867600B1000F /* Guise watchOS */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		F343A9EA1DB7867600B1000F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F3700B641DB7826900DDB218 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -419,6 +471,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		F343A9E71DB7867600B1000F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F343AA031DB7871400B1000F /* Guise.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F3700B611DB7826900DDB218 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -500,6 +560,57 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		F343A9FD1DB7867600B1000F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_SUSPICIOUS_MOVES = YES;
+				CODE_SIGN_IDENTITY = "";
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = RWC7T4Z6DX;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INFOPLIST_FILE = Guise/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.prosumma.Guise;
+				PRODUCT_NAME = Guise;
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_VERSION = 3.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		F343A9FE1DB7867600B1000F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_SUSPICIOUS_MOVES = YES;
+				CODE_SIGN_IDENTITY = "";
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = RWC7T4Z6DX;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INFOPLIST_FILE = Guise/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.prosumma.Guise;
+				PRODUCT_NAME = Guise;
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 3.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		F3700B781DB7826A00DDB218 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -824,6 +935,14 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		F343AA011DB7867600B1000F /* Build configuration list for PBXNativeTarget "Guise watchOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F343A9FD1DB7867600B1000F /* Debug */,
+				F343A9FE1DB7867600B1000F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
 		F3700B771DB7826A00DDB218 /* Build configuration list for PBXNativeTarget "Guise tvOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -831,6 +950,7 @@
 				F3700B791DB7826A00DDB218 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F3700B7A1DB7826A00DDB218 /* Build configuration list for PBXNativeTarget "GuiseTests tvOS" */ = {
 			isa = XCConfigurationList;
@@ -839,6 +959,7 @@
 				F3700B7C1DB7826A00DDB218 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F3C3ED681C8D64FE00FD8E4D /* Build configuration list for PBXProject "Guise" */ = {
 			isa = XCConfigurationList;
