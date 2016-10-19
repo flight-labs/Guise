@@ -31,15 +31,15 @@ public enum Lifecycle {
     /**
      The registered block is called on every resolution.
     */
-    case NotCached
+    case notCached
     /**
      The registered block is invoked only once. After that, its cached result is returned.
     */
-    case Cached
+    case cached
     /**
      The dependency is completely removed after it is resolved the first time.
     */
-    case Once
+    case once
 }
 
 /**
@@ -51,26 +51,26 @@ public enum Lifecycle {
  */
 public struct Guise {
     
-    private init() {}
+    fileprivate init() {}
     
     // MARK: Dependencies
 
     /**
      A type-erasing thunk over the `resolve` block, with metadata.
     */
-    private class Dependency {
-        private let resolve: Any -> Any
-        private let lifecycle: Lifecycle
-        private var instance: Any?
+    fileprivate class Dependency {
+        fileprivate let resolve: (Any) -> Any
+        fileprivate let lifecycle: Lifecycle
+        fileprivate var instance: Any?
         
-        init<P, D>(lifecycle: Lifecycle, resolve: P -> D) {
+        init<P, D>(lifecycle: Lifecycle, resolve: @escaping (P) -> D) {
             self.lifecycle = lifecycle
             self.resolve = { param in resolve(param as! P) }
         }
         
-        func resolve<D>(parameter: Any, lifecycle: Lifecycle) -> D {
+        func resolve<D>(_ parameter: Any, lifecycle: Lifecycle) -> D {
             var result: D
-            if lifecycle != .NotCached && self.lifecycle == .Cached {
+            if lifecycle != .notCached && self.lifecycle == .cached {
                 if instance == nil {
                     instance = resolve(parameter)
                 }
@@ -82,29 +82,29 @@ public struct Guise {
         }
     }
     
-    private static var dependencies = [Key: Dependency]()
+    fileprivate static var dependencies = [Key: Dependency]()
     
     // MARK: Locking
     // Inspired by some of John Gallagher's locking code in the excellent Deferred library at https://github.com/bignerdranch/Deferred
     
-    private static var lock: UnsafeMutablePointer<pthread_rwlock_t> = {
-        var lock = UnsafeMutablePointer<pthread_rwlock_t>.alloc(1)
+    fileprivate static var lock: UnsafeMutablePointer<pthread_rwlock_t> = {
+        var lock = UnsafeMutablePointer<pthread_rwlock_t>.allocate(capacity: 1)
         let status = pthread_rwlock_init(lock, nil)
         assert(status == 0)
         return lock
     }()
     
-    private static func withLock<T>(acquire: UnsafeMutablePointer<pthread_rwlock_t> -> Int32, @noescape block: () -> T) -> T {
-        acquire(lock)
+    fileprivate static func withLock<T>(_ acquire: (UnsafeMutablePointer<pthread_rwlock_t>) -> Int32, block: () -> T) -> T {
+        let _ = acquire(lock)
         defer { pthread_rwlock_unlock(lock) }
         return block()
     }
     
-    private static func withReadLock<T>(@noescape block: () -> T) -> T {
+    fileprivate static func withReadLock<T>(_ block: () -> T) -> T {
         return withLock(pthread_rwlock_rdlock, block: block)
     }
     
-    private static func withWriteLock<T>(@noescape block: () -> T) -> T {
+    fileprivate static func withWriteLock<T>(_ block: () -> T) -> T {
         return withLock(pthread_rwlock_wrlock, block: block)
     }
     
@@ -123,7 +123,7 @@ public struct Guise {
      
      - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
-    public static func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .NotCached, resolve: P -> D) -> Key {
+    public static func register<P, D>(type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .notCached, resolve: @escaping (P) -> D) -> Key {
         let key = Key(type: type, name: name, container: container, resolve: resolve)
         withWriteLock {
             dependencies[key] = Dependency(lifecycle: lifecycle, resolve: resolve)
@@ -146,15 +146,15 @@ public struct Guise {
      
      - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
-    public static func register<D>(instance: D, type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil) -> Key {
-        return register(type: type, name: name, container: container, lifecycle: .Cached) { instance }
+    public static func register<D>(_ instance: D, type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil) -> Key {
+        return register(type: type, name: name, container: container, lifecycle: .cached) { instance }
     }
     
     /**
      Unregisters the dependency with the given key.
      */
-    public static func unregister(key: Key) -> Bool {
-        return withWriteLock { dependencies.removeValueForKey(key) != nil }
+    public static func unregister(_ key: Key) -> Bool {
+        return withWriteLock { dependencies.removeValue(forKey: key) != nil }
     }
     
     /**
@@ -163,7 +163,7 @@ public struct Guise {
      - parameter type: The type of the dependency to unregister.
      - parameter name: The name of the dependency to unregister (optional).
      */
-    public static func unregister(type type: String, name: String? = nil, container: String? = nil) -> Bool {
+    public static func unregister(type: String, name: String? = nil, container: String? = nil) -> Bool {
         let key = Key(type: type, name: name, container: container)
         return unregister(key)
     }
@@ -178,7 +178,7 @@ public struct Guise {
      originally register the block. The block can take a parameter just like the registration
      block, but it is ignored.
      */
-    public static func unregister<P, D>(name name: String? = nil, container: String? = nil, @noescape resolve: P -> D) -> Bool {
+    public static func unregister<P, D>(name: String? = nil, container: String? = nil, resolve: (P) -> D) -> Bool {
         return unregister(type: String(reflecting: D.self), name: name, container: container)
     }
     
@@ -198,10 +198,10 @@ public struct Guise {
      dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
     */
-    public static func resolve<D>(key: Key, parameter: Any = (), lifecycle: Lifecycle = .Cached) -> D? {
+    public static func resolve<D>(_ key: Key, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
         guard let dependency = withReadLock({ dependencies[key] }) else { return nil }
-        if lifecycle == .Once || dependency.lifecycle == .Once {
-            withWriteLock { dependencies.removeValueForKey(key) }
+        if lifecycle == .once || dependency.lifecycle == .once {
+            let _ = withWriteLock { dependencies.removeValue(forKey: key) }
         }
         return (dependency.resolve(parameter, lifecycle: lifecycle) as D)
     }
@@ -223,7 +223,7 @@ public struct Guise {
      dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
      */
-    public static func resolve<D>(parameter: Any = (), type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
+    public static func resolve<D>(_ parameter: Any = (), type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, lifecycle: Lifecycle = .cached) -> D? {
         let key = Key(type: type, name: name, container: container)
         return resolve(key, parameter: parameter, lifecycle: lifecycle)
     }
@@ -240,11 +240,11 @@ public struct Guise {
     /**
      Clears all dependencies in the given container from Guise.
     */
-    public static func reset(container: String?) {
+    public static func reset(_ container: String?) {
         withWriteLock {
             for key in dependencies.keys {
                 if key.container == container {
-                    dependencies.removeValueForKey(key)
+                    dependencies.removeValue(forKey: key)
                 }
             }
         }
@@ -252,7 +252,7 @@ public struct Guise {
     
     // MARK: Containers
     
-    public static func container(name: String?, lifecycle: Lifecycle = .NotCached) -> Container {
+    public static func container(_ name: String?, lifecycle: Lifecycle = .notCached) -> Container {
         return Container(name: name, lifecycle: lifecycle)
     }
 }
@@ -281,7 +281,7 @@ public struct Key: Hashable {
         hashValue = hash
     }
     
-    public init<P, D>(type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, @noescape resolve: P -> D) {
+    public init<P, D>(type: String = String(reflecting: D.self), name: String? = nil, container: String? = nil, resolve: (P) -> D) {
         self.init(type: type, name: name, container: container)
     }
     
@@ -303,7 +303,7 @@ public struct Container {
     public let container: String?
     public let lifecycle: Lifecycle
     
-    private init(name: String?, lifecycle: Lifecycle) {
+    fileprivate init(name: String?, lifecycle: Lifecycle) {
         self.container = name
         self.lifecycle = lifecycle
     }
@@ -322,7 +322,7 @@ public struct Container {
      
      - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
-    public func register<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle? = nil, resolve: P -> D) -> Any {
+    public func register<P, D>(type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle? = nil, resolve: @escaping (P) -> D) -> Any {
         return Guise.register(type: type, name: name, container: container, lifecycle: lifecycle ?? self.lifecycle, resolve: resolve)
     }
     
@@ -340,8 +340,8 @@ public struct Container {
      
      - warning: It is strongly recommended that the generic parameter `D` is not an optional.
      */
-    public func register<D>(instance: D, type: String = String(reflecting: D.self), name: String? = nil) -> Any {
-        return register(type: type, name: name, lifecycle: .Cached) { instance }
+    public func register<D>(_ instance: D, type: String = String(reflecting: D.self), name: String? = nil) -> Any {
+        return register(type: type, name: name, lifecycle: .cached) { instance }
     }
     
     /**
@@ -350,7 +350,7 @@ public struct Container {
      - parameter type: The type of the dependency to unregister.
      - parameter name: The name of the dependency to unregister (optional).
      */
-    public func unregister(type type: String, name: String? = nil) -> Bool {
+    public func unregister(type: String, name: String? = nil) -> Bool {
         return Guise.unregister(type: type, name: name, container: container)
     }
     
@@ -367,7 +367,7 @@ public struct Container {
      originally register the block. The block can take a parameter just like the registration
      block, but it is ignored.
      */
-    public func unregister<P, D>(name name: String? = nil, @noescape resolve: P -> D) -> Bool {
+    public func unregister<P, D>(name: String? = nil, resolve: (P) -> D) -> Bool {
         return Guise.unregister(name: name, container: container, resolve: resolve)
     }
     
@@ -389,7 +389,7 @@ public struct Container {
      dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
      */
-    public func resolve<D>(parameter: Any, type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
+    public func resolve<D>(_ parameter: Any, type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle = .cached) -> D? {
         return Guise.resolve(parameter, type: type, name: name, container: container, lifecycle: lifecycle)
     }
     
@@ -408,7 +408,7 @@ public struct Container {
      dependency was originally registered with `.Cached`, the cached value is ignored and a new value is calculated. In all
      other cases, a new value is calculated by invoking the registered block.
      */
-    public func resolve<D>(type type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle = .Cached) -> D? {
+    public func resolve<D>(type: String = String(reflecting: D.self), name: String? = nil, lifecycle: Lifecycle = .cached) -> D? {
         return resolve((), type: type, name: name, lifecycle: lifecycle)
     }
     
@@ -423,11 +423,11 @@ public struct Container {
     
     // MARK: Keys
 
-    public func key(type type: String, name: String? = nil) -> Key {
+    public func key(type: String, name: String? = nil) -> Key {
         return Key(type: type, name: name, container: container)
     }
     
-    public func key<P, D>(type type: String = String(reflecting: D.self), name: String? = nil, @noescape resolve: P -> D) -> Key {
+    public func key<P, D>(type: String = String(reflecting: D.self), name: String? = nil, resolve: (P) -> D) -> Key {
         return Key(type: type, name: name, container: container)
     }
     

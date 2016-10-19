@@ -9,14 +9,14 @@
 import Foundation
 
 protocol Database: class {
-    func saveItems(items: [Item])
+    func saveItems(_ items: [Item])
     func retrieveItems() -> [Item]
 }
 
 class MemoryCache: Database {
-    private var items = [Item]()
+    fileprivate var items = [Item]()
     
-    func saveItems(items: [Item]) {
+    func saveItems(_ items: [Item]) {
         self.items = items
     }
     

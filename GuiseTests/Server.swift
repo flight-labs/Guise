@@ -10,30 +10,30 @@ import Foundation
 import Guise
 
 enum Response {
-    case Success([Item])
-    case Error(ErrorType?)
+    case success([Item])
+    case error(Error?)
 }
 
 protocol Serving {
-    func fetch(callback: Response -> Void)
+    func fetch(_ callback: (Response) -> Void)
 }
 
 struct Server: Serving {
-    func fetch(callback: Response -> Void) {
-        let mainBundle = Guise.resolve(name: "main")! as NSBundle
-        let path = mainBundle.pathForResource("Data", ofType: "json")!
+    func fetch(_ callback: (Response) -> Void) {
+        let mainBundle = Guise.resolve(name: "main")! as Bundle
+        let path = mainBundle.path(forResource: "Data", ofType: "json")!
         
-        var response = Response.Error(nil)
+        var response = Response.error(nil)
         defer { callback(response) }
         
         do {
-            guard let data = NSData(contentsOfFile: path) else { return }
+            guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else { return }
             
-            let array = try NSJSONSerialization.JSONObjectWithData(data, options: []) as! [[String: String]]
+            let array = try JSONSerialization.jsonObject(with: data, options: []) as! [[String: String]]
             let items = array.map { Item(value: $0["value"]!) }
-            response = .Success(items)
+            response = .success(items)
         } catch let e {
-            response = .Error(e)
+            response = .error(e)
         }
     }
 }

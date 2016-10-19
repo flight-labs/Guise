@@ -17,7 +17,7 @@ class Controller: Controlling {
     func getItems() {
         let server = Guise.resolve()! as Serving
         server.fetch { response in
-            if case .Success(let items) = response {
+            if case .success(let items) = response {
                 let database = Guise.resolve()! as Database
                 database.saveItems(items)
             }

@@ -14,16 +14,16 @@ class GuiseTests: XCTestCase {
     override class func setUp() {
         super.setUp()
         
-        Guise.register(NSBundle(forClass: GuiseTests.self), name: "main")
-        Guise.register(lifecycle: .Cached) { MemoryCache() as Database }
-        Guise.register { Server() as Serving }
-        Guise.register { Controller() as Controlling }
+        let _ = Guise.register(Bundle(for: GuiseTests.self), name: "main")
+        let _ = Guise.register(lifecycle: .cached) { MemoryCache() as Database }
+        let _ = Guise.register { Server() as Serving }
+        let _ = Guise.register { Controller() as Controlling }
     }
     
     func testResolveMainBundle() {
-        let mainBundle = Guise.resolve(name: "main") as NSBundle?
+        let mainBundle = Guise.resolve(name: "main") as Bundle?
         XCTAssertNotNil(mainBundle)
-        let path = mainBundle!.pathForResource("Data", ofType: "json")
+        let path = mainBundle!.path(forResource: "Data", ofType: "json")
         XCTAssertNotNil(path)
     }
     
@@ -47,9 +47,9 @@ class GuiseTests: XCTestCase {
     func testControllerServerAndDatabase() {
         let controller = Guise.resolve() as Controlling!
         XCTAssertNotNil(controller)
-        controller.getItems()
+        controller!.getItems()
         let database = Guise.resolve() as Database!
         XCTAssertNotNil(database)
-        XCTAssertEqual(database.retrieveItems().count, 3)
+        XCTAssertEqual(database!.retrieveItems().count, 3)
     }
 }
