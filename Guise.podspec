@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
   #
 
   s.name         = "Guise"
-  s.version      = "3.0"
+  s.version      = "4.0"
   s.summary      = "An elegant, flexible, type-safe dependency resolution framework for Swift."
 
   # This description is used to generate tags and improve search results.
@@ -70,9 +70,9 @@ It allows caching, simplifies unit testing, and allows your application to be mo
 
   #  When using multiple platforms
   s.ios.deployment_target = "9.0"
-  s.osx.deployment_target = "10.9"
-  # s.watchos.deployment_target = "2.0"
-  # s.tvos.deployment_target = "9.0"
+  s.osx.deployment_target = "10.11"
+  s.watchos.deployment_target = "2.0"
+  s.tvos.deployment_target = "9.0"
 
 
   # ――― Source Location ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
