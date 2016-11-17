@@ -199,7 +199,7 @@ public struct Guise {
     public static func resolve<D>(key: Key, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
         guard let dependency = withReadLock({ dependencies[key] }) else { return nil }
         if lifecycle == .once || dependency.lifecycle == .once {
-            let _ = withWriteLock { dependencies.removeValue(forKey: key) }
+            unregister(key: key)
         }
         return (dependency.resolve(parameter, lifecycle: lifecycle) as D)
     }
