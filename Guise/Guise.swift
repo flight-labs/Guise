@@ -247,25 +247,25 @@ public struct Guise {
         return Guise.register(name: Name.default, container: Container.default, lifecycle: lifecycle ?? self.lifecycle, resolve: resolve)
     }
 
-    public func resolve<D>(key: Key, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
-        return Guise.resolve(key: key, parameter: parameter, lifecycle: lifecycle)
+    public func resolve<D>(key: Key, parameter: Any = (), lifecycle: Lifecycle? = nil) -> D? {
+        return Guise.resolve(key: key, parameter: parameter, lifecycle: lifecycle ?? self.lifecycle)
     }
     
-    public func resolve<D, N: Hashable, C: Hashable>(name: N, container: C, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
+    public func resolve<D, N: Hashable, C: Hashable>(name: N, container: C, parameter: Any = (), lifecycle: Lifecycle? = nil) -> D? {
         let key = Key(type: D.self, name: name, container: container)
-        return Guise.resolve(key: key, parameter: parameter, lifecycle: lifecycle)
+        return Guise.resolve(key: key, parameter: parameter, lifecycle: lifecycle ?? self.lifecycle)
     }
     
-    public func resolve<D, C: Hashable>(container: C, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
-        return Guise.resolve(name: Name.default, container: container, parameter: parameter, lifecycle: lifecycle)
+    public func resolve<D, C: Hashable>(container: C, parameter: Any = (), lifecycle: Lifecycle? = nil) -> D? {
+        return Guise.resolve(name: Name.default, container: container, parameter: parameter, lifecycle: lifecycle ?? self.lifecycle)
     }
     
-    public func resolve<D, N: Hashable>(name: N, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
-        return Guise.resolve(name: name, container: Container.default, parameter: parameter, lifecycle: lifecycle)
+    public func resolve<D, N: Hashable>(name: N, parameter: Any = (), lifecycle: Lifecycle? = nil) -> D? {
+        return Guise.resolve(name: name, container: Container.default, parameter: parameter, lifecycle: lifecycle ?? self.lifecycle)
     }
     
-    public func resolve<D>(parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
-        return Guise.resolve(name: Name.default, container: Container.default, parameter: parameter, lifecycle: lifecycle)
+    public func resolve<D>(parameter: Any = (), lifecycle: Lifecycle? = nil) -> D? {
+        return Guise.resolve(name: Name.default, container: Container.default, parameter: parameter, lifecycle: lifecycle ?? self.lifecycle)
     }
 
 }
