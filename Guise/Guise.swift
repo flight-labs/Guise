@@ -244,6 +244,25 @@ public struct Guise {
     public func register<P, D>(lifecycle: Lifecycle? = nil, resolve: @escaping (P) -> D) -> Key {
         return Guise.register(name: Name.default, container: Container.default, lifecycle: lifecycle ?? self.lifecycle, resolve: resolve)
     }
+    
+    public func unregister(key: Key) {
+        Guise.unregister(key: key)
+    }
+    
+    public func unregister<D, C: Hashable>(type: D.Type, container: C) {
+        let key = Key(type: D.self, name: Name.default, container: container)
+        Guise.unregister(key: key)
+    }
+    
+    public func unregister<D, N: Hashable>(type: D.Type, name: N) {
+        let key = Key(type: D.self, name: name, container: Container.default)
+        Guise.unregister(key: key)
+    }
+    
+    public func unregister<D>(type: D.Type) {
+        let key = Key(type: D.self, name: Name.default, container: Container.default)
+        Guise.unregister(key: key)
+    }
 
     public func resolve<D>(key: Key, parameter: Any = (), lifecycle: Lifecycle? = nil) -> D? {
         return Guise.resolve(key: key, parameter: parameter, lifecycle: lifecycle ?? self.lifecycle)
@@ -267,3 +286,4 @@ public struct Guise {
     }
 
 }
+

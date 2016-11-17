@@ -14,7 +14,7 @@ class GuiseTests: XCTestCase {
     override class func setUp() {
         super.setUp()
         
-        let _ = Guise.register(Bundle(for: GuiseTests.self), name: "main")
+        let _ = Guise.register(instance: Bundle(for: GuiseTests.self), name: "main")
         let _ = Guise.register(lifecycle: .cached) { MemoryCache() as Database }
         let _ = Guise.register { Server() as Serving }
         let _ = Guise.register { Controller() as Controlling }
