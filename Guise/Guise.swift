@@ -24,8 +24,6 @@ SOFTWARE.
 
 import Foundation
 
-// Order should be instance, key, type, name, container, parameter, lifecycle, resolve
-
 /**
  Guise dependency lifecycle.
 */
