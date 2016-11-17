@@ -55,15 +55,15 @@ public struct Key: Hashable {
     fileprivate let name: AnyHashable
     fileprivate let container: AnyHashable
     
-    init<D, C: Hashable, N: Hashable>(type: D.Type, container: C, name: N) {
+    init<D, N: Hashable, C: Hashable>(type: D.Type, name: N, container: C) {
         self.type = String(reflecting: D.self)
         self.name = name
         self.container = container
-        hashValue = hash(self.type, self.container, self.name)
+        hashValue = hash(self.type, self.name, self.container)
     }
     
     init<P, D, C: Hashable, N: Hashable>(container: C, name: N, resolve: (P) -> D) {
-        self.init(type: D.self, container: container, name: name)
+        self.init(type: D.self, name: name, container: container)
     }
     
     public let hashValue: Int
@@ -139,7 +139,7 @@ public struct Guise {
     private static var dependencies = [Key: Dependency]()
     
     public static func register<P, D, C: Hashable, N: Hashable>(container: C, name: N, lifecycle: Lifecycle = .notCached, resolve: @escaping (P) -> D) -> Key {
-        let key = Key(type: D.self, container: container, name: name)
+        let key = Key(type: D.self, name: name, container: container)
         withWriteLock {
             dependencies[key] = Dependency(lifecycle: lifecycle, resolve: resolve)
         }
@@ -175,22 +175,22 @@ public struct Guise {
     }
     
     public static func unregister<D, C: Hashable, N: Hashable>(type: D.Type, container: C, name: N) {
-        let key = Key(type: D.self, container: container, name: name)
+        let key = Key(type: D.self, name: name, container: container)
         unregister(key: key)
     }
     
     public static func unregister<D, C: Hashable>(type: D.Type, container: C) {
-        let key = Key(type: D.self, container: container, name: Name.default)
+        let key = Key(type: D.self, name: Name.default, container: container)
         unregister(key: key)
     }
     
     public static func unregister<D, N: Hashable>(type: D.Type, name: N) {
-        let key = Key(type: D.self, container: Container.default, name: name)
+        let key = Key(type: D.self, name: name, container: Container.default)
         unregister(key: key)
     }
     
     public static func unregister<D>(type: D.Type) {
-        let key = Key(type: D.self, container: Container.default, name: Name.default)
+        let key = Key(type: D.self, name: Name.default, container: Container.default)
         unregister(key: key)
     }
     
@@ -207,7 +207,7 @@ public struct Guise {
     }
     
     public static func resolve<D, C: Hashable, N: Hashable>(container: C, name: N, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
-        let key = Key(type: D.self, container: container, name: name)
+        let key = Key(type: D.self, name: name, container: container)
         return resolve(key: key, parameter: parameter, lifecycle: lifecycle)
     }
     
@@ -252,7 +252,7 @@ public struct Guise {
     }
     
     public func resolve<D, C: Hashable, N: Hashable>(container: C, name: N, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
-        let key = Key(type: D.self, container: container, name: name)
+        let key = Key(type: D.self, name: name, container: container)
         return Guise.resolve(key: key, parameter: parameter, lifecycle: lifecycle)
     }
     
