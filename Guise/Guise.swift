@@ -76,8 +76,9 @@ public func ==(lhs: Key, rhs: Key) -> Bool {
 }
 
 internal class Dependency {
+    internal let lifecycle: Lifecycle
+    
     private let resolve: (Any) -> Any
-    private let lifecycle: Lifecycle
     private var instance: Any?
     
     init<P, D>(lifecycle: Lifecycle, resolve: @escaping (P) -> D) {
@@ -143,8 +144,45 @@ public struct Guise {
         return key
     }
     
+    public static func register<P, D, N: Hashable>(name: N, lifecycle: Lifecycle = .notCached, resolve: @escaping (P) -> D) -> Key {
+        return register(container: Container.default, name: name, lifecycle: lifecycle, resolve: resolve)
+    }
+    
+    public static func register<P, D, C: Hashable>(container: C, lifecycle: Lifecycle = .notCached, resolve: @escaping (P) -> D) -> Key {
+        return register(container: container, name: Container.default, lifecycle: lifecycle, resolve: resolve)
+    }
+    
+    public static func register<P, D>(lifecycle: Lifecycle = .notCached, resolve: @escaping (P) -> D) -> Key {
+        return register(container: Container.default, name: Name.default, lifecycle: lifecycle, resolve: resolve)
+    }
+    
     public static func container<C: Hashable>(name: C, lifecycle: Lifecycle = .notCached) -> Guise {
         return Guise(name: name, lifecycle: lifecycle)
+    }
+    
+    public static func resolve<D>(key: Key, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
+        guard let dependency = withReadLock({ dependencies[key] }) else { return nil }
+        if lifecycle == .once || dependency.lifecycle == .once {
+            let _ = withWriteLock { dependencies.removeValue(forKey: key) }
+        }
+        return (dependency.resolve(parameter, lifecycle: lifecycle) as D)
+    }
+    
+    public static func resolve<D, C: Hashable, N: Hashable>(container: C, name: N, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
+        let key = Key(type: String(reflecting: D.self), container: container, name: name)
+        return resolve(key: key, parameter: parameter, lifecycle: lifecycle)
+    }
+    
+    public static func resolve<D, C: Hashable>(container: C, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
+        return resolve(container: container, name: Name.default, parameter: parameter, lifecycle: lifecycle)
+    }
+    
+    public static func resolve<D, N: Hashable>(name: N, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
+        return resolve(container: Container.default, name: name, parameter: parameter, lifecycle: lifecycle)
+    }
+    
+    public static func resolve<D>(parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
+        return resolve(container: Container.default, name: Name.default, parameter: parameter, lifecycle: lifecycle)
     }
     
     public let name: AnyHashable
