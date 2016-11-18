@@ -156,16 +156,20 @@ public struct Guise {
         return register(name: Name.default, container: Container.default, lifecycle: lifecycle, resolve: resolve)
     }
     
-    public static func register<D, N: Hashable, C: Hashable>(instance: D, name: N, container: C) -> Key {
-        return register(name: name, container: container, lifecycle: .cached) { instance }
+    public static func register<D, N: Hashable, C: Hashable>(instance: D, name: N, container: C, lifecycle: Lifecycle = .cached) -> Key {
+        return register(name: name, container: container, lifecycle: lifecycle) { instance }
     }
     
-    public static func register<D, N: Hashable>(instance: D, name: N) -> Key {
-        return register(instance: instance, name: name, container: Container.default)
+    public static func register<D, N: Hashable>(instance: D, name: N, lifecycle: Lifecycle = .cached) -> Key {
+        return register(instance: instance, name: name, container: Container.default, lifecycle: lifecycle)
     }
     
-    public static func register<D>(instance: D) -> Key {
-        return register(instance: instance, name: Name.default, container: Container.default)
+    public static func register<D, C: Hashable>(instance: D, container: C, lifecycle: Lifecycle = .cached) -> Key {
+        return register(instance: instance, name: Name.default, container: container, lifecycle: lifecycle)
+    }
+    
+    public static func register<D>(instance: D, lifecycle: Lifecycle = .cached) -> Key {
+        return register(instance: instance, name: Name.default, container: Container.default, lifecycle: lifecycle)
     }
     
     public static func unregister(key: Key) {
