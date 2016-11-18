@@ -9,19 +9,23 @@
 import XCTest
 @testable import Guise
 
+enum BundleName {
+    case main
+}
+
 class GuiseTests: XCTestCase {
 
     override class func setUp() {
         super.setUp()
         
-        let _ = Guise.register(instance: Bundle(for: GuiseTests.self), name: "main")
+        let _ = Guise.register(instance: Bundle(for: GuiseTests.self), name: BundleName.main)
         let _ = Guise.register(lifecycle: .cached) { MemoryCache() as Database }
         let _ = Guise.register { Server() as Serving }
         let _ = Guise.register { Controller() as Controlling }
     }
     
     func testResolveMainBundle() {
-        let mainBundle = Guise.resolve(name: "main") as Bundle?
+        let mainBundle = Guise.resolve(name: BundleName.main) as Bundle?
         XCTAssertNotNil(mainBundle)
         let path = mainBundle!.path(forResource: "Data", ofType: "json")
         XCTAssertNotNil(path)
