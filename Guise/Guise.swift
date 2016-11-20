@@ -48,6 +48,16 @@ private func hash<H: Hashable>(_ hashables: H...) -> Int {
     return hashables.reduce(5381) { (result, hashable) in ((result << 5) &+ result) &+ hashable.hashValue }
 }
 
+infix operator ??= : AssignmentPrecedence
+
+func ??=<T>(lhs: inout T?, rhs: @autoclosure () -> T?) {
+    if lhs != nil { return }
+    lhs = rhs()
+}
+
+/**
+ The key representing a registered dependency.
+ */
 public struct Key: Hashable {
     public let type: String
     public let name: AnyHashable
@@ -100,56 +110,99 @@ public enum Name {
     case `default`
 }
 
-public enum Container {
-    case `default`
-}
-
-public struct Guise {
-    
+private struct DependencyStore {
     // MARK: Locking
     // Inspired by some of John Gallagher's locking code in the excellent Deferred library at https://github.com/bignerdranch/Deferred
     
-    private static var lock: UnsafeMutablePointer<pthread_rwlock_t> = {
+    private var lock: UnsafeMutablePointer<pthread_rwlock_t> = {
         var lock = UnsafeMutablePointer<pthread_rwlock_t>.allocate(capacity: 1)
         let status = pthread_rwlock_init(lock, nil)
         assert(status == 0)
         return lock
     }()
     
-    private static func withLock<T>(_ acquire: (UnsafeMutablePointer<pthread_rwlock_t>) -> Int32, block: () -> T) -> T {
+    private func withLock<T>(_ acquire: (UnsafeMutablePointer<pthread_rwlock_t>) -> Int32, block: () -> T) -> T {
         let _ = acquire(lock)
         defer { pthread_rwlock_unlock(lock) }
         return block()
     }
     
-    private static func withReadLock<T>(_ block: () -> T) -> T {
+    private func withReadLock<T>(_ block: () -> T) -> T {
         return withLock(pthread_rwlock_rdlock, block: block)
     }
     
-    private static func withWriteLock<T>(_ block: () -> T) -> T {
+    private func withWriteLock<T>(_ block: () -> T) -> T {
         return withLock(pthread_rwlock_wrlock, block: block)
     }
+
+    private var dependencies = [Key: Dependency]()
+    private var containers = [AnyHashable: Set<Key>]()
     
-    private static var dependencies = [Key: Dependency]()
+    mutating func updateDependency(_ dependency: Dependency?, forKey key: Key) {
+        withWriteLock {
+            dependencies[key] = dependency
+            if dependency != nil {
+                containers[key.container] ??= Set<Key>()
+                containers[key.container]!.insert(key)
+            } else {
+                let _ = containers[key.container]?.remove(key)
+            }
+        }
+    }
+    
+    mutating func removeDependency(forKey key: Key) {
+        withWriteLock {
+            dependencies.removeValue(forKey: key)
+            let _ = containers[key.container]?.remove(key)
+        }
+    }
+    
+    mutating func clear() {
+        withWriteLock {
+            dependencies = [:]
+            containers = [:]
+        }
+    }
+    
+    mutating func clear<C: Hashable>(container: C) {
+        clear(hashable: container)
+    }
+    
+    mutating func clear(hashable: AnyHashable) {
+        withWriteLock {
+            guard let keys = containers[hashable] else { return }
+            keys.forEach { dependencies.removeValue(forKey: $0) }
+            containers[hashable] = nil
+        }
+    }
+    
+    subscript(key: Key) -> Dependency? {
+        get { return withReadLock { dependencies[key] } }
+        set { updateDependency(newValue, forKey: key) }
+    }
+}
+
+public struct Guise {
+    
+    private static var dependencyStore = DependencyStore()
     
     public static func register<P, D, N: Hashable, C: Hashable>(name: N, container: C, lifecycle: Lifecycle = .notCached, resolve: @escaping (P) -> D) -> Key {
         let key = Key(type: D.self, name: name, container: container)
-        withWriteLock {
-            dependencies[key] = Dependency(lifecycle: lifecycle, resolve: resolve)
-        }
+        let dependency = Dependency(lifecycle: lifecycle, resolve: resolve)
+        dependencyStore[key] = dependency
         return key
     }
     
     public static func register<P, D, N: Hashable>(name: N, lifecycle: Lifecycle = .notCached, resolve: @escaping (P) -> D) -> Key {
-        return register(name: name, container: Container.default, lifecycle: lifecycle, resolve: resolve)
+        return register(name: name, container: Name.default, lifecycle: lifecycle, resolve: resolve)
     }
     
     public static func register<P, D, C: Hashable>(container: C, lifecycle: Lifecycle = .notCached, resolve: @escaping (P) -> D) -> Key {
-        return register(name: Name.default, container: Container.default, lifecycle: lifecycle, resolve: resolve)
+        return register(name: Name.default, container: Name.default, lifecycle: lifecycle, resolve: resolve)
     }
     
     public static func register<P, D>(lifecycle: Lifecycle = .notCached, resolve: @escaping (P) -> D) -> Key {
-        return register(name: Name.default, container: Container.default, lifecycle: lifecycle, resolve: resolve)
+        return register(name: Name.default, container: Name.default, lifecycle: lifecycle, resolve: resolve)
     }
     
     public static func register<D, N: Hashable, C: Hashable>(instance: D, name: N, container: C, lifecycle: Lifecycle = .cached) -> Key {
@@ -157,7 +210,7 @@ public struct Guise {
     }
     
     public static func register<D, N: Hashable>(instance: D, name: N, lifecycle: Lifecycle = .cached) -> Key {
-        return register(instance: instance, name: name, container: Container.default, lifecycle: lifecycle)
+        return register(instance: instance, name: name, container: Name.default, lifecycle: lifecycle)
     }
     
     public static func register<D, C: Hashable>(instance: D, container: C, lifecycle: Lifecycle = .cached) -> Key {
@@ -165,11 +218,11 @@ public struct Guise {
     }
     
     public static func register<D>(instance: D, lifecycle: Lifecycle = .cached) -> Key {
-        return register(instance: instance, name: Name.default, container: Container.default, lifecycle: lifecycle)
+        return register(instance: instance, name: Name.default, container: Name.default, lifecycle: lifecycle)
     }
     
     public static func unregister(key: Key) {
-        let _ = withWriteLock { dependencies.removeValue(forKey: key) }
+        dependencyStore[key] = nil
     }
     
     public static func unregister<D, N: Hashable, C: Hashable>(type: D.Type, name: N, container: C) {
@@ -183,21 +236,21 @@ public struct Guise {
     }
     
     public static func unregister<D, N: Hashable>(type: D.Type, name: N) {
-        let key = Key(type: D.self, name: name, container: Container.default)
+        let key = Key(type: D.self, name: name, container: Name.default)
         unregister(key: key)
     }
     
     public static func unregister<D>(type: D.Type) {
-        let key = Key(type: D.self, name: Name.default, container: Container.default)
+        let key = Key(type: D.self, name: Name.default, container: Name.default)
         unregister(key: key)
     }
     
-    public static func container<C: Hashable>(name: C, lifecycle: Lifecycle = .notCached) -> Guise {
-        return Guise(name: name, lifecycle: lifecycle)
+    public static func container<C: Hashable>(name: C, lifecycle: Lifecycle = .notCached) -> Container {
+        return Container(name: name, lifecycle: lifecycle)
     }
     
     public static func resolve<D>(key: Key, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
-        guard let dependency = withReadLock({ dependencies[key] }) else { return nil }
+        guard let dependency = dependencyStore[key] else { return nil }
         if lifecycle == .once || dependency.lifecycle == .once {
             unregister(key: key)
         }
@@ -214,36 +267,25 @@ public struct Guise {
     }
     
     public static func resolve<D, N: Hashable>(name: N, parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
-        return resolve(name: name, container: Container.default, parameter: parameter, lifecycle: lifecycle)
+        return resolve(name: name, container: Name.default, parameter: parameter, lifecycle: lifecycle)
     }
     
     public static func resolve<D>(parameter: Any = (), lifecycle: Lifecycle = .cached) -> D? {
-        return resolve(name: Name.default, container: Container.default, parameter: parameter, lifecycle: lifecycle)
+        return resolve(name: Name.default, container: Name.default, parameter: parameter, lifecycle: lifecycle)
     }
     
     public static func clear() {
-        withWriteLock { self.dependencies = [:] }
+        dependencyStore.clear()
     }
     
     public static func clear<C: Hashable>(container: C) {
-        let h = AnyHashable(container)
-        withWriteLock {
-            var keysToDelete = [Key]()
-            for (key, _) in dependencies {
-                if key.container == h {
-                    keysToDelete.append(key)
-                }
-            }
-            for key in keysToDelete {
-                dependencies.removeValue(forKey: key)
-            }
-        }
+        dependencyStore.clear(container: container)
     }
     
     public let name: AnyHashable
     public let lifecycle: Lifecycle
     
-    public init<C: Hashable>(name: C, lifecycle: Lifecycle = .notCached) {
+    private init<C: Hashable>(name: C, lifecycle: Lifecycle = .notCached) {
         self.name = name
         self.lifecycle = lifecycle
     }
@@ -276,12 +318,15 @@ public struct Guise {
     }
     
     public func resolve<D>(parameter: Any = (), lifecycle: Lifecycle? = nil) -> D? {
-        return Guise.resolve(name: Name.default, parameter: parameter, lifecycle: lifecycle ?? self.lifecycle)
+        let key = Key(type: D.self, name: Name.default, container: self.name)
+        return Guise.resolve(key: key, parameter: parameter, lifecycle: lifecycle ?? self.lifecycle)
     }
     
     public func clear() {
-        Guise.clear(container: self.name)
+        Guise.dependencyStore.clear(hashable: self.name)
     }
 
 }
+
+public typealias Container = Guise
 
