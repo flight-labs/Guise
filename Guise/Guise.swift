@@ -81,7 +81,7 @@ public func ==(lhs: Key, rhs: Key) -> Bool {
     return true
 }
 
-internal class Dependency {
+class Dependency {
     internal let lifecycle: Lifecycle
     
     private let resolve: (Any) -> Any
@@ -110,10 +110,9 @@ public enum Name {
     case `default`
 }
 
-private struct DependencyStore {
-    // MARK: Locking
-    // Inspired by some of John Gallagher's locking code in the excellent Deferred library at https://github.com/bignerdranch/Deferred
-    
+// MARK: Locking
+// Inspired by some of John Gallagher's locking code in the excellent Deferred library at https://github.com/bignerdranch/Deferred
+struct Lock {
     private var lock: UnsafeMutablePointer<pthread_rwlock_t> = {
         var lock = UnsafeMutablePointer<pthread_rwlock_t>.allocate(capacity: 1)
         let status = pthread_rwlock_init(lock, nil)
@@ -121,44 +120,50 @@ private struct DependencyStore {
         return lock
     }()
     
-    private func withLock<T>(_ acquire: (UnsafeMutablePointer<pthread_rwlock_t>) -> Int32, block: () -> T) -> T {
+    func with<T>(_ acquire: (UnsafeMutablePointer<pthread_rwlock_t>) -> Int32, block: () -> T) -> T {
         let _ = acquire(lock)
         defer { pthread_rwlock_unlock(lock) }
         return block()
     }
     
-    private func withReadLock<T>(_ block: () -> T) -> T {
-        return withLock(pthread_rwlock_rdlock, block: block)
+    func read<T>(_ block: () -> T) -> T {
+        return with(pthread_rwlock_rdlock, block: block)
     }
     
-    private func withWriteLock<T>(_ block: () -> T) -> T {
-        return withLock(pthread_rwlock_wrlock, block: block)
+    func write<T>(_ block: () -> T) -> T {
+        return with(pthread_rwlock_wrlock, block: block)
     }
+}
 
+struct DependencyStore {
+    private var lock = Lock()
     private var dependencies = [Key: Dependency]()
     private var containers = [AnyHashable: Set<Key>]()
     
     mutating func updateDependency(_ dependency: Dependency?, forKey key: Key) {
-        withWriteLock {
+        lock.write {
             dependencies[key] = dependency
             if dependency != nil {
                 containers[key.container] ??= Set<Key>()
                 containers[key.container]!.insert(key)
             } else {
                 let _ = containers[key.container]?.remove(key)
+                if let keys = containers[key.container], keys.count == 0 {
+                    containers.removeValue(forKey: key.container)
+                }
             }
         }
     }
     
     mutating func removeDependency(forKey key: Key) {
-        withWriteLock {
+        lock.write {
             dependencies.removeValue(forKey: key)
             let _ = containers[key.container]?.remove(key)
         }
     }
     
     mutating func clear() {
-        withWriteLock {
+        lock.write {
             dependencies = [:]
             containers = [:]
         }
@@ -169,15 +174,16 @@ private struct DependencyStore {
     }
     
     mutating func clear(hashable: AnyHashable) {
-        withWriteLock {
+        lock.write {
             guard let keys = containers[hashable] else { return }
             keys.forEach { dependencies.removeValue(forKey: $0) }
             containers[hashable] = nil
+            containers.removeValue(forKey: hashable)
         }
     }
     
     subscript(key: Key) -> Dependency? {
-        get { return withReadLock { dependencies[key] } }
+        get { return lock.read { dependencies[key] } }
         set { updateDependency(newValue, forKey: key) }
     }
 }
