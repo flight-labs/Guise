@@ -138,7 +138,7 @@ struct Lock {
 struct DependencyStore {
     private var lock = Lock()
     private var dependencies = [Key: Dependency]()
-    private var containers = [AnyHashable: Set<Key>]()
+    fileprivate var containers = [AnyHashable: Set<Key>]()
     
     mutating func updateDependency(_ dependency: Dependency?, forKey key: Key) {
         lock.write {
@@ -294,9 +294,13 @@ public struct Container {
     public let name: AnyHashable
     public let lifecycle: Lifecycle
     
-    fileprivate init<C: Hashable>(name: C, lifecycle: Lifecycle = .notCached) {
+    public init<C: Hashable>(name: C, lifecycle: Lifecycle = .notCached) {
         self.name = name
         self.lifecycle = lifecycle
+    }
+    
+    public var keys: Set<Key> {
+        return Guise.dependencyStore.containers[name]!
     }
     
     public func register<P, D, N: Hashable>(name: N, lifecycle: Lifecycle? = nil, resolve: @escaping (P) -> D) -> Key {
@@ -305,10 +309,6 @@ public struct Container {
     
     public func register<P, D>(lifecycle: Lifecycle? = nil, resolve: @escaping (P) -> D) -> Key {
         return Guise.register(name: Name.default, container: self.name, lifecycle: lifecycle ?? self.lifecycle, resolve: resolve)
-    }
-    
-    public func unregister(key: Key) {
-        Guise.unregister(key: key)
     }
     
     public func unregister<D>(type: D.Type) {
