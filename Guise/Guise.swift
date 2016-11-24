@@ -190,7 +190,7 @@ struct DependencyStore {
 
 public struct Guise {
     
-    private static var dependencyStore = DependencyStore()
+    fileprivate static var dependencyStore = DependencyStore()
     
     public static func register<P, D, N: Hashable, C: Hashable>(name: N, container: C, lifecycle: Lifecycle = .notCached, resolve: @escaping (P) -> D) -> Key {
         let key = Key(type: D.self, name: name, container: container)
@@ -288,10 +288,13 @@ public struct Guise {
         dependencyStore.clear(container: container)
     }
     
+}
+
+public struct Container {
     public let name: AnyHashable
     public let lifecycle: Lifecycle
     
-    private init<C: Hashable>(name: C, lifecycle: Lifecycle = .notCached) {
+    fileprivate init<C: Hashable>(name: C, lifecycle: Lifecycle = .notCached) {
         self.name = name
         self.lifecycle = lifecycle
     }
@@ -331,8 +334,5 @@ public struct Guise {
     public func clear() {
         Guise.dependencyStore.clear(hashable: self.name)
     }
-
 }
-
-public typealias Container = Guise
 
