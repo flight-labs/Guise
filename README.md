@@ -16,6 +16,19 @@ Guise is an elegant, flexible, type-safe dependency resolution framework for Swi
 - [x] Swift 3
 - [x] Support for iOS 9+, macOS 10.11+, watchOS 2+, tvOS 9+
 
+### Changes From Version 2.0
+
+The biggest change from the previous version is that the name of a registered block and its container can now be of any type that implements `Hashable`, e.g.,
+
+```swift
+enum Foo { // This type implements `Hashable` implicitly.
+  case bar
+}
+
+Guise.register(name: Foo.bar) { Blah() }
+
+```
+
 ### Usage
 
 Guise supports two basic operations: registration and resolution. Registration is the act of registering a block whose return type is used as a key when resolution is needed. Resolution is the act of calling the registered block and returning its result. By using a block to register, _any_ Swift type is supported, even if we do not have access to a constructor.
