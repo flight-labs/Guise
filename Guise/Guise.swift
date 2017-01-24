@@ -46,6 +46,9 @@ public enum Lifecycle {
  `Name.default` is used for the default name of a container or type when one is not specified.
  */
 public enum Name {
+    /**
+     `Name.default` is used for the default name of a container or type when one is not specified.
+     */
     case `default`
 }
 
@@ -90,6 +93,11 @@ private class Lock {
     }
 }
 
+/**
+ A unique key under which to register a block in Guise.
+ 
+ 
+*/
 public struct Key: Hashable {
     public let type: String
     public let name: AnyHashable
@@ -145,6 +153,7 @@ private class Dependency {
     
     func resolve<T>(_ parameter: Any, lifecycle: Lifecycle) -> T {
         var result: T
+        let lifecycle = lifecycle == .once ? self.lifecycle : lifecycle
         if lifecycle == .cached {
             if instance == nil {
                 instance = registration(parameter)
@@ -158,6 +167,8 @@ private class Dependency {
 }
 
 public struct Guise {
+    private init() {}
+    
     private static var lock = Lock()
     private static var registrations = [Key: Dependency]()
     
@@ -169,13 +180,18 @@ public struct Guise {
     /**
      Register the `registration` block with Guise under the given name and in the given container.
      
-     - parameter name: The name under which to register the `registration` block.
-     - parameter container: The container in which to register the `registration` block.
+     - returns: The unique `Key` for this registration.
+     
+     - parameters:
+        - name: The name under which to register the block.
+        - container: The container in which to register the block.
+        - lifecycle: The lifecycle of the block. See `Lifecycle` for a more in-depth discussion.
+        - registration: The block to register with Guise.
     */
     public static func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, lifecycle: Lifecycle = .notCached, registration: @escaping Registration<P, T>) -> Key {
         return register(key: Key(type: T.self, name: name, container: container), lifecycle: lifecycle, registration: registration)
     }
-    
+
     public static func register<P, T, N: Hashable>(name: N, lifecycle: Lifecycle = .notCached, registration: @escaping Registration<P, T>) -> Key {
         return register(key: Key(type: T.self, name: name, container: Name.default), lifecycle: lifecycle, registration: registration)
     }
