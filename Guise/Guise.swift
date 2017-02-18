@@ -279,8 +279,11 @@ public struct Guise {
      
      - returns: The unique `Key` for this registration.
      - parameter instance: The instance to register.
+     
+     - note: The `ignored` parameter is used to disambiguate an overload. Otherwise, the compiler can't figure out
+     whether Guise is registering an instance or a registration block.
     */
-    public static func register<T>(instance: T) -> Key {
+    public static func register<T>(instance: T, ignored: Int = 0) -> Key {
         return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: true) { instance }
     }
     
