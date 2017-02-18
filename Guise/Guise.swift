@@ -170,7 +170,7 @@ public struct Guise {
      
      - parameters:
         - key: The key with which to register.
-        - lifecycle: The lifecycle of the block. See `Lifecycle` for a more in-depth discussion.
+        - cached: Whether or not to cache the result of the registration block.
         - registration: The block to register with Guise.
     */
     private static func register<P, T>(key: Key, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
@@ -186,39 +186,68 @@ public struct Guise {
      - parameters:
         - name: The name under which to register the block.
         - container: The container in which to register the block.
-        - lifecycle: The lifecycle of the block. See `Lifecycle` for a more in-depth discussion.
+        - cached: Whether or not to cache the result of the registration block.
         - registration: The block to register with Guise.
     */
     public static func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
         return register(key: Key(type: T.self, name: name, container: container), cached: cached, registration: registration)
     }
 
+    /**
+     Register the `registration` block with Guise under the given name and in the default container.
+     
+     - returns: The unique `Key` for this registration.
+     
+     - parameters:
+        - name: The name under which to register the block.
+        - cached: Whether or not to cache the result of the registration block.
+        - registration: The block to register with Guise.
+    */
     public static func register<P, T, N: Hashable>(name: N, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
         return register(key: Key(type: T.self, name: name, container: Name.default), cached: cached, registration: registration)
     }
     
+    /**
+     Register the `registration` block with Guise with the default name in the given container.
+     
+     - returns: The unique `Key` for this registration.
+     
+     - parameters:
+         - container: The container in which to register the block.
+         - cached: Whether or not to cache the result of the registration block.
+         - registration: The block to register with Guise.
+    */
     public static func register<P, T, C: Hashable>(container: C, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
         return register(key: Key(type: T.self, name: Name.default, container: container), cached: cached, registration: registration)
     }
-    
+
+    /**
+     Register the `registration` block with Guise with the default name in the default container.
+     
+     - returns: The unique `Key` for this registration.
+     
+     - parameters:
+         - cached: Whether or not to cache the result of the registration block.
+         - registration: The block to register with Guise.
+    */
     public static func register<P, T>(cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
         return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: cached, registration: registration)
     }
     
-    public static func register<T, N: Hashable, C: Hashable>(instance: T, name: N, container: C, cached: Bool = true) -> Key {
-        return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: cached) { instance }
+    public static func register<T, N: Hashable, C: Hashable>(instance: T, name: N, container: C) -> Key {
+        return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: true) { instance }
     }
     
-    public static func register<T, N: Hashable>(instance: T, name: N, cached: Bool = true) -> Key {
-        return register(key: Key(type: T.self, name: name, container: Name.default), cached: cached) { instance }
+    public static func register<T, N: Hashable>(instance: T, name: N) -> Key {
+        return register(key: Key(type: T.self, name: name, container: Name.default), cached: true) { instance }
     }
     
-    public static func register<T, C: Hashable>(instance: T, container: C, cached: Bool = true) -> Key {
-        return register(key: Key(type: T.self, name: Name.default, container: container), cached: cached) { instance }
+    public static func register<T, C: Hashable>(instance: T, container: C) -> Key {
+        return register(key: Key(type: T.self, name: Name.default, container: container), cached: true) { instance }
     }
     
-    public static func register<T>(instance: T, cached: Bool = true) -> Key {
-        return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: cached) { instance }
+    public static func register<T>(instance: T) -> Key {
+        return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: true) { instance }
     }
     
     public static func resolve<T>(key: Key, parameter: Any = (), cached: Bool? = nil) -> T? {
