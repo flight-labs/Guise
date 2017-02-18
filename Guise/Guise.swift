@@ -25,24 +25,6 @@ SOFTWARE.
 import Foundation
 
 /**
- Guise dependency lifecycle.
-*/
-public enum Lifecycle {
-    /**
-     The registered block is called on every resolution.
-    */
-    case notCached
-    /**
-     The registered block is invoked only once. After that, its cached result is returned.
-    */
-    case cached
-    /**
-     The dependency is completely removed after it is resolved the first time.
-    */
-    case once
-}
-
-/**
  `Name.default` is used for the default name of a container or type when one is not specified.
  */
 public enum Name {
@@ -131,7 +113,15 @@ public func ==(lhs: Key, rhs: KeyComparison) -> Bool {
     return true
 }
 
+public func ==(lhs: KeyComparison, rhs: Key) -> Bool {
+    return rhs == lhs
+}
+
 public func !=(lhs: Key, rhs: KeyComparison) -> Bool {
+    return !(lhs == rhs)
+}
+
+public func !=(lhs: KeyComparison, rhs: Key) -> Bool {
     return !(lhs == rhs)
 }
 
@@ -141,20 +131,21 @@ public typealias Registration<P, T> = (P) -> T
  This class creates and holds a type-erasing thunk over a registration block.
  */
 private class Dependency {
-    internal let lifecycle: Lifecycle
-    
+    /** Default lifecycle for the dependency. */
+    internal let cached: Bool
+    /** Registered block. */
     private let registration: (Any) -> Any
+    /** Cached instance, if any. */
     private var instance: Any?
     
-    init<P, T>(lifecycle: Lifecycle, registration: @escaping Registration<P, T>) {
-        self.lifecycle = lifecycle
+    init<P, T>(cached: Bool, registration: @escaping Registration<P, T>) {
+        self.cached = cached
         self.registration = { param in registration(param as! P) }
     }
     
-    func resolve<T>(_ parameter: Any, lifecycle: Lifecycle) -> T {
+    func resolve<T>(parameter: Any, cached: Bool) -> T {
         var result: T
-        let lifecycle = lifecycle == .once ? self.lifecycle : lifecycle
-        if lifecycle == .cached {
+        if cached {
             if instance == nil {
                 instance = registration(parameter)
             }
@@ -172,8 +163,18 @@ public struct Guise {
     private static var lock = Lock()
     private static var registrations = [Key: Dependency]()
     
-    private static func register<P, T>(key: Key, lifecycle: Lifecycle = .notCached, registration: @escaping Registration<P, T>) -> Key {
-        lock.write { registrations[key] = Dependency(lifecycle: lifecycle, registration: registration) }
+    /**
+     Register the `registration` block with Guise using the given key.
+     
+     - returns: The key passed to it.
+     
+     - parameters:
+        - key: The key with which to register.
+        - lifecycle: The lifecycle of the block. See `Lifecycle` for a more in-depth discussion.
+        - registration: The block to register with Guise.
+    */
+    private static func register<P, T>(key: Key, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
+        lock.write { registrations[key] = Dependency(cached: cached, registration: registration) }
         return key
     }
     
@@ -188,61 +189,57 @@ public struct Guise {
         - lifecycle: The lifecycle of the block. See `Lifecycle` for a more in-depth discussion.
         - registration: The block to register with Guise.
     */
-    public static func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, lifecycle: Lifecycle = .notCached, registration: @escaping Registration<P, T>) -> Key {
-        return register(key: Key(type: T.self, name: name, container: container), lifecycle: lifecycle, registration: registration)
+    public static func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
+        return register(key: Key(type: T.self, name: name, container: container), cached: cached, registration: registration)
     }
 
-    public static func register<P, T, N: Hashable>(name: N, lifecycle: Lifecycle = .notCached, registration: @escaping Registration<P, T>) -> Key {
-        return register(key: Key(type: T.self, name: name, container: Name.default), lifecycle: lifecycle, registration: registration)
+    public static func register<P, T, N: Hashable>(name: N, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
+        return register(key: Key(type: T.self, name: name, container: Name.default), cached: cached, registration: registration)
     }
     
-    public static func register<P, T, C: Hashable>(container: C, lifecycle: Lifecycle = .notCached, registration: @escaping Registration<P, T>) -> Key {
-        return register(key: Key(type: T.self, name: Name.default, container: container), lifecycle: lifecycle, registration: registration)
+    public static func register<P, T, C: Hashable>(container: C, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
+        return register(key: Key(type: T.self, name: Name.default, container: container), cached: cached, registration: registration)
     }
     
-    public static func register<P, T>(lifecycle: Lifecycle = .notCached, registration: @escaping Registration<P, T>) -> Key {
-        return register(key: Key(type: T.self, name: Name.default, container: Name.default), lifecycle: lifecycle, registration: registration)
+    public static func register<P, T>(cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
+        return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: cached, registration: registration)
     }
     
-    public static func register<T, N: Hashable, C: Hashable>(instance: T, name: N, container: C, lifecycle: Lifecycle = .cached) -> Key {
-        return register(key: Key(type: T.self, name: Name.default, container: Name.default), lifecycle: lifecycle) { instance }
+    public static func register<T, N: Hashable, C: Hashable>(instance: T, name: N, container: C, cached: Bool = true) -> Key {
+        return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: cached) { instance }
     }
     
-    public static func register<T, N: Hashable>(instance: T, name: N, lifecycle: Lifecycle = .cached) -> Key {
-        return register(key: Key(type: T.self, name: name, container: Name.default), lifecycle: lifecycle) { instance }
+    public static func register<T, N: Hashable>(instance: T, name: N, cached: Bool = true) -> Key {
+        return register(key: Key(type: T.self, name: name, container: Name.default), cached: cached) { instance }
     }
     
-    public static func register<T, C: Hashable>(instance: T, container: C, lifecycle: Lifecycle = .cached) -> Key {
-        return register(key: Key(type: T.self, name: Name.default, container: container), lifecycle: lifecycle) { instance }
+    public static func register<T, C: Hashable>(instance: T, container: C, cached: Bool = true) -> Key {
+        return register(key: Key(type: T.self, name: Name.default, container: container), cached: cached) { instance }
     }
     
-    public static func register<T>(instance: T, lifecycle: Lifecycle = .cached) -> Key {
-        return register(key: Key(type: T.self, name: Name.default, container: Name.default), lifecycle: lifecycle) { instance }
+    public static func register<T>(instance: T, cached: Bool = true) -> Key {
+        return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: cached) { instance }
     }
     
-    public static func resolve<T>(key: Key, parameter: Any = (), lifecycle: Lifecycle? = nil) -> T? {
+    public static func resolve<T>(key: Key, parameter: Any = (), cached: Bool? = nil) -> T? {
         guard let dependency = lock.read({ registrations[key] }) else { return nil }
-        let lifecycle = lifecycle ?? dependency.lifecycle
-        defer {
-            if lifecycle == .once { clear(key: key) }
-        }
-        return dependency.resolve(parameter, lifecycle: lifecycle)
+        return dependency.resolve(parameter: parameter, cached: cached ?? dependency.cached)
     }
     
-    public static func resolve<T, N: Hashable, C: Hashable>(name: N, container: C, parameter: Any = (), lifecycle: Lifecycle? = nil) -> T? {
-        return resolve(key: Key(type: T.self, name: name, container: container), parameter: parameter, lifecycle: lifecycle)
+    public static func resolve<T, N: Hashable, C: Hashable>(name: N, container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
+        return resolve(key: Key(type: T.self, name: name, container: container), parameter: parameter, cached: cached)
     }
     
-    public static func resolve<T, N: Hashable>(name: N, parameter: Any = (), lifecycle: Lifecycle? = nil) -> T? {
-        return resolve(key: Key(type: T.self, name: name, container: Name.default), parameter: parameter, lifecycle: lifecycle)
+    public static func resolve<T, N: Hashable>(name: N, parameter: Any = (), cached: Bool? = nil) -> T? {
+        return resolve(key: Key(type: T.self, name: name, container: Name.default), parameter: parameter, cached: cached)
     }
     
-    public static func resolve<T, C: Hashable>(container: C, parameter: Any = (), lifecycle: Lifecycle? = nil) -> T? {
-        return resolve(key: Key(type: T.self, name: Name.default, container: container), parameter: parameter, lifecycle: lifecycle)
+    public static func resolve<T, C: Hashable>(container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
+        return resolve(key: Key(type: T.self, name: Name.default, container: container), parameter: parameter, cached: cached)
     }
     
-    public static func resolve<T>(parameter: Any = (), lifecycle: Lifecycle? = nil) -> T? {
-        return resolve(key: Key(type: T.self, name: Name.default, container: Name.default), parameter: parameter, lifecycle: lifecycle)
+    public static func resolve<T>(parameter: Any = (), cached: Bool? = nil) -> T? {
+        return resolve(key: Key(type: T.self, name: Name.default, container: Name.default), parameter: parameter, cached: cached)
     }
     
     public static func getKeyComparison<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> KeyComparison {
@@ -273,40 +270,40 @@ public struct Guise {
         return (type: nil, name: nil, container: container)
     }
     
-    public static func clear(key: Key) {
+    public static func unregister(key: Key) {
         return lock.write { registrations.removeValue(forKey: key) }
     }
     
-    public static func clear(_ isExcluded: (Key) -> Bool) {
+    public static func unregister(_ isExcluded: (Key) -> Bool) {
         return lock.write{ registrations = registrations.filter{ !isExcluded($0.key) }.dictionary{ $0 } }
     }
     
-    public static func clear<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) {
-        clear{ $0 == getKeyComparison(type: type, name: name, container: container) }
+    public static func unregister<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) {
+        unregister{ $0 == getKeyComparison(type: type, name: name, container: container) }
     }
     
-    public static func clear<T, N: Hashable>(type: T.Type, name: N) {
-        clear{ $0 == getKeyComparison(type: type, name: name) }
+    public static func unregister<T, N: Hashable>(type: T.Type, name: N) {
+        unregister{ $0 == getKeyComparison(type: type, name: name) }
     }
     
-    public static func clear<T, C: Hashable>(type: T.Type, container: C) {
-        clear{ $0 == getKeyComparison(type: type, container: container) }
+    public static func unregister<T, C: Hashable>(type: T.Type, container: C) {
+        unregister{ $0 == getKeyComparison(type: type, container: container) }
     }
     
-    public static func clear<N: Hashable, C: Hashable>(name: N, container: C) {
-        clear{ $0 == getKeyComparison(name: name, container: container) }
+    public static func unregister<N: Hashable, C: Hashable>(name: N, container: C) {
+        unregister{ $0 == getKeyComparison(name: name, container: container) }
     }
         
-    public static func clear<T>(type: T.Type) {
-        clear{ $0 == getKeyComparison(type: type) }
+    public static func unregister<T>(type: T.Type) {
+        unregister{ $0 == getKeyComparison(type: type) }
     }
     
-    public static func clear<N: Hashable>(name: N) {
-        clear{ $0 == getKeyComparison(name: name) }
+    public static func unregister<N: Hashable>(name: N) {
+        unregister{ $0 == getKeyComparison(name: name) }
     }
     
-    public static func clear<C: Hashable>(container: C) {
-        clear{ $0 == getKeyComparison(container: container) }
+    public static func unregister<C: Hashable>(container: C) {
+        unregister{ $0 == getKeyComparison(container: container) }
     }
 }
 

@@ -19,9 +19,10 @@ class GuiseTests: XCTestCase {
         super.setUp()
         
         let _ = Guise.register(instance: Bundle(for: GuiseTests.self), name: BundleName.main)
-        let _ = Guise.register(lifecycle: .cached) { MemoryCache() as Database }
+        let _ = Guise.register(cached: true) { MemoryCache() as Database }
         let _ = Guise.register { Server() as Serving }
         let _ = Guise.register { Controller() as Controlling }
+        let _ = Guise.register(container: "watusi") { Controller() as Controlling }
     }
     
     func testResolveMainBundle() {
@@ -47,6 +48,14 @@ class GuiseTests: XCTestCase {
         XCTAssertNotNil(database2)
         XCTAssertTrue(database1 === database2)
     }
+    
+    func testClearContainer() {
+        var controller = Guise.resolve(container: "watusi") as Controlling?
+        XCTAssertNotNil(controller)
+        Guise.unregister(container: "watusi")
+        controller = Guise.resolve(container: "watusi") as Controlling?
+        XCTAssertNil(controller)
+    }
 
     func testControllerServerAndDatabase() {
         let controller = Guise.resolve() as Controlling!
@@ -55,5 +64,19 @@ class GuiseTests: XCTestCase {
         let database = Guise.resolve() as Database!
         XCTAssertNotNil(database)
         XCTAssertEqual(database!.retrieveItems().count, 3)
+    }
+
+    func testKeyEquality() {
+        let key1 = Guise.register(instance: 3, name: "three")
+        let key2 = Guise.register(instance: 3, name: "three")
+        let key3 = Guise.register(instance: 3)
+        XCTAssertEqual(key1, key2)
+        XCTAssertNotEqual(key1, key3)
+    }
+    
+    func testKeyComparison() {
+        let key = Key(type: Key.self, name: Name.default, container: "container")
+        let keyComparison = Guise.getKeyComparison(container: "container")
+        XCTAssertTrue(key == keyComparison)
     }
 }
