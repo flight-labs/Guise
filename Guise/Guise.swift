@@ -234,6 +234,16 @@ public struct Guise {
         return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: cached, registration: registration)
     }
     
+    /**
+     Register the given instance with the specified name and in the specified container.
+     
+     - returns: The unique `Key` for this registration.
+     
+     - parameters:
+        - instance: The instance to register.
+        - name: The name under which to register the block.
+        - container: The container in which to register the block.
+    */
     public static func register<T, N: Hashable, C: Hashable>(instance: T, name: N, container: C) -> Key {
         return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: true) { instance }
     }
