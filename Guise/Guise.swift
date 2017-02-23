@@ -143,9 +143,9 @@ private class Dependency {
         self.registration = { param in registration(param as! P) }
     }
     
-    func resolve<T>(parameter: Any, cached: Bool) -> T {
+    func resolve<T>(parameter: Any, cached: Bool?) -> T {
         var result: T
-        if cached {
+        if cached ?? self.cached {
             if instance == nil {
                 instance = registration(parameter)
             }
@@ -163,23 +163,13 @@ public struct Guise {
     private static var lock = Lock()
     private static var registrations = [Key: Dependency]()
     
-    /**
-     Register the `registration` block with Guise using the given key.
-     
-     - returns: The key passed to it.
-     
-     - parameters:
-        - key: The key with which to register.
-        - cached: Whether or not to cache the result of the registration block.
-        - registration: The block to register with Guise.
-    */
     private static func register<P, T>(key: Key, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
         lock.write { registrations[key] = Dependency(cached: cached, registration: registration) }
         return key
     }
     
     /**
-     Register the `registration` block with Guise under the given name and in the given container.
+     Register the `registration` block with the type `T` in the given `name` and `container`.
      
      - returns: The unique `Key` for this registration.
      
@@ -188,6 +178,32 @@ public struct Guise {
         - container: The container in which to register the block.
         - cached: Whether or not to cache the result of the registration block.
         - registration: The block to register with Guise.
+     
+     ## Keys
+     
+     The combination of the type `T`, the `name` and the `container` creates the unique `Key` returned from this
+     method. Any subsequent registration which would produce the same `Key` overwrites the previous one.
+     
+     The `name` and `container` parameters can be any `Hashable` type, such as `String`, `Int`, enumeration types, etc.
+     
+     ## Parameters
+     
+     The registration block can contain zero or one parameters. (Actually, the lack of a parameter is the empty tuple, `()`.)
+     For example:
+     
+     ```
+     // Registration:
+     Guise.register(name: "name", container: "container") {
+        TakesNoParams()
+     }
+     Guise.register(name: "name", container: "container") {
+        (x: Int) in TakesAnInt(x: x)
+     }
+     
+     // Resolution:
+     let tnp: TakesNoParams = Guise.resolve(name: "name", container: "container")!
+     let tai: TakesAnInt = Guise.resolve(name: "name", container: "container", parameter: 3)!
+     ```
     */
     public static func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
         return register(key: Key(type: T.self, name: name, container: container), cached: cached, registration: registration)
@@ -281,29 +297,93 @@ public struct Guise {
      - parameter instance: The instance to register.
      
      - note: The `ignored` parameter is used to disambiguate an overload. Otherwise, the compiler can't figure out
-     whether Guise is registering an instance or a registration block.
+     whether Guise is registering an instance or a block.
     */
     public static func register<T>(instance: T, ignored: Int = 0) -> Key {
         return register(key: Key(type: T.self, name: Name.default, container: Name.default), cached: true) { instance }
     }
     
+    /**
+     Resolve a dependency registered with the given key.
+     
+     - returns: The registered dependency or `nil` if it is not found.
+     
+     - parameters:
+        - key: The key to resolve.
+        - parameter: A parameter to pass to the resolution block.
+        - cached: Whether to use the cached value or to call the block again.
+     
+     Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
+     when the dependency was registered. In most cases, this is what you want.
+    */
     public static func resolve<T>(key: Key, parameter: Any = (), cached: Bool? = nil) -> T? {
         guard let dependency = lock.read({ registrations[key] }) else { return nil }
-        return dependency.resolve(parameter: parameter, cached: cached ?? dependency.cached)
+        return dependency.resolve(parameter: parameter, cached: cached)
     }
     
+    /**
+     Resolve a dependency registered with the given key.
+     
+     - returns: The registered dependency or `nil` if it is not found.
+     
+     - parameters:
+         - key: The key to resolve.
+         - parameter: A parameter to pass to the resolution block.
+         - cached: Whether to use the cached value or to call the block again.
+     
+     Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
+     when the dependency was registered. In most cases, this is what you want.
+    */
     public static func resolve<T, N: Hashable, C: Hashable>(name: N, container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
         return resolve(key: Key(type: T.self, name: name, container: container), parameter: parameter, cached: cached)
     }
     
+    /**
+     Resolve a dependency registered with the given type `T` and `name`.
+     
+     - returns: The registered dependency or `nil` if it is not found.
+     
+     - parameters:
+         - name: The name under which the block was registered.
+         - parameter: A parameter to pass to the resolution block.
+         - cached: Whether to use the cached value or to call the block again.
+     
+     Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
+     when the dependency was registered. In most cases, this is what you want.
+    */
     public static func resolve<T, N: Hashable>(name: N, parameter: Any = (), cached: Bool? = nil) -> T? {
         return resolve(key: Key(type: T.self, name: name, container: Name.default), parameter: parameter, cached: cached)
     }
-    
+
+    /**
+     Resolve a dependency registered with the given type `T` in the given `container`.
+     
+     - returns: The registered dependency or `nil` if it is not found.
+     
+     - parameters:
+         - container: The key to resolve.
+         - parameter: A parameter to pass to the resolution block.
+         - cached: Whether to use the cached value or to call the block again.
+     
+     Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
+     when the dependency was registered. In most cases, this is what you want.
+    */
     public static func resolve<T, C: Hashable>(container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
         return resolve(key: Key(type: T.self, name: Name.default, container: container), parameter: parameter, cached: cached)
     }
-    
+
+    /**
+     Resolve a registered dependency.
+     
+     - returns: The registered dependency or `nil` if it is not found.
+     
+     - parameters:
+         - parameter: A parameter to pass to the resolution block.
+         - cached: Whether to use the cached value or to call the block again.
+     
+     Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
+     when the dependency was registered. In most cases, this is what you want.
+    */
     public static func resolve<T>(parameter: Any = (), cached: Bool? = nil) -> T? {
         return resolve(key: Key(type: T.self, name: Name.default, container: Name.default), parameter: parameter, cached: cached)
     }
