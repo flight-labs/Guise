@@ -102,29 +102,6 @@ public func ==(lhs: Key, rhs: Key) -> Bool {
     return true
 }
 
-public typealias KeyComparison = (type: String?, name: AnyHashable?, container: AnyHashable?)
-
-public func ==(lhs: Key, rhs: KeyComparison) -> Bool {
-    let (type: type, name: name, container: container) = rhs
-    if let type = type, lhs.type != type { return false }
-    if let name = name, lhs.name != name { return false }
-    if let container = container, lhs.container != container { return false }
-    if type == nil && name == nil && container == nil { return false }
-    return true
-}
-
-public func ==(lhs: KeyComparison, rhs: Key) -> Bool {
-    return rhs == lhs
-}
-
-public func !=(lhs: Key, rhs: KeyComparison) -> Bool {
-    return !(lhs == rhs)
-}
-
-public func !=(lhs: KeyComparison, rhs: Key) -> Bool {
-    return !(lhs == rhs)
-}
-
 public typealias Registration<P, T> = (P) -> T
 
 /**
@@ -306,7 +283,7 @@ public struct Guise {
     /**
      Resolve a dependency registered with the given key.
      
-     - returns: The registered dependency or `nil` if it is not found.
+     - returns: The resolved dependency or `nil` if it is not found.
      
      - parameters:
         - key: The key to resolve.
@@ -322,9 +299,38 @@ public struct Guise {
     }
     
     /**
+     Resolve multiple registrations at the same time.
+     
+     - returns: An array of the resolved dependencies.
+     
+     - parameters:
+        - keys: The keys to resolve.
+        - parameter: A parameter to pass to the resolution block.
+        - cached: Whether to use the cached value or to call the resolution block again.
+     
+     Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
+     when the dependency was registered. In most cases, this is what you want.
+     
+     Use the `filter` overloads to conveniently get a list of keys. For example,
+     
+     ```swift
+     // Get the keys for all plugins
+     let keys = Guise.filter(type: Plugin.self)
+     // Resolve the keys
+     let plugins: [Plugin] = Guise.resolve(keys: keys)
+     ```
+    */
+    public static func resolve<T, K: Sequence>(keys: K, parameter: Any = (), cached: Bool? = nil) -> [T] where K.Iterator.Element == Key {
+        let dependencies = lock.read {
+            registrations.filter { keys.contains($0.key) }.map{ $0.value }
+        }
+        return dependencies.map { $0.resolve(parameter: parameter, cached: cached) }
+    }
+    
+    /**
      Resolve a dependency registered with the given key.
      
-     - returns: The registered dependency or `nil` if it is not found.
+     - returns: The resolved dependency or `nil` if it is not found.
      
      - parameters:
          - key: The key to resolve.
@@ -341,7 +347,7 @@ public struct Guise {
     /**
      Resolve a dependency registered with the given type `T` and `name`.
      
-     - returns: The registered dependency or `nil` if it is not found.
+     - returns: The resolved dependency or `nil` if it is not found.
      
      - parameters:
          - name: The name under which the block was registered.
@@ -358,7 +364,7 @@ public struct Guise {
     /**
      Resolve a dependency registered with the given type `T` in the given `container`.
      
-     - returns: The registered dependency or `nil` if it is not found.
+     - returns: The resolved dependency or `nil` if it is not found.
      
      - parameters:
          - container: The key to resolve.
@@ -375,7 +381,7 @@ public struct Guise {
     /**
      Resolve a registered dependency.
      
-     - returns: The registered dependency or `nil` if it is not found.
+     - returns: The resolved dependency or `nil` if it is not found.
      
      - parameters:
          - parameter: A parameter to pass to the resolution block.
@@ -388,68 +394,60 @@ public struct Guise {
         return resolve(key: Key(type: T.self, name: Name.default, container: Name.default), parameter: parameter, cached: cached)
     }
     
-    public static func getKeyComparison<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> KeyComparison {
-        return (type: String(reflecting: T.self), name: name, container: container)
+    private static func filter(type: String?, name: AnyHashable?, container: AnyHashable?) -> [Key] {
+        return lock.read {
+            var keys = [Key]()
+            for key in registrations.keys {
+                var append = true
+                if let type = type, type != key.type { append = false }
+                if let name = name, name != key.name { append = false }
+                if let container = container, container != key.container { append = false }
+                if append { keys.append(key) }
+            }
+            return keys
+        }
     }
     
-    public static func getKeyComparison<T, N: Hashable>(type: T.Type, name: N) -> KeyComparison {
-        return (type: String(reflecting: T.self), name: name, container: nil)
+    public static func filter<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> [Key] {
+        return filter(type: String(reflecting: type), name: name, container: container)
     }
     
-    public static func getKeyComparison<T, C: Hashable>(type: T.Type, container: C) -> KeyComparison {
-        return (type: String(reflecting: T.self), name: nil, container: container)
+    public static func filter<T, N: Hashable>(type: T.Type, name: N) -> [Key] {
+        return filter(type: String(reflecting: type), name: name, container: nil)
     }
     
-    public static func getKeyComparison<N: Hashable, C: Hashable>(name: N, container: C) -> KeyComparison {
-        return (type: nil, name: name, container: container)
+    public static func filter<T, C: Hashable>(type: T.Type, container: C) -> [Key] {
+        return filter(type: String(reflecting: type), name: nil, container: container)
     }
     
-    public static func getKeyComparison<T>(type: T.Type) -> KeyComparison {
-        return (type: String(reflecting: T.self), name: nil, container: nil)
+    public static func filter<N: Hashable, C: Hashable>(name: N, container: C) -> [Key] {
+        return filter(type: nil, name: name, container: container)
     }
     
-    public static func getKeyComparison<N: Hashable>(name: N) -> KeyComparison {
-        return (type: nil, name: name, container: nil)
+    public static func filter<N: Hashable>(name: N) -> [Key] {
+        return filter(type: nil, name: name, container: nil)
     }
     
-    public static func getKeyComparison<C: Hashable>(container: C) -> KeyComparison {
-        return (type: nil, name: nil, container: container)
+    public static func filter<C: Hashable>(container: C) -> [Key] {
+        return filter(type: nil, name: nil, container: container)
+    }
+
+    public static var keys: [Key] {
+        return lock.read { Array(registrations.keys) }
     }
     
     public static func unregister(key: Key) {
-        return lock.write { registrations.removeValue(forKey: key) }
+        unregister(keys: [key])
     }
     
-    public static func unregister(_ isExcluded: (Key) -> Bool) {
-        return lock.write{ registrations = registrations.filter{ !isExcluded($0.key) }.dictionary{ $0 } }
+    public static func unregister<K: Sequence>(keys: K) where K.Iterator.Element == Key {
+        lock.write {
+            registrations = registrations.filter{ keys.contains($0.key) }.dictionary { $0 }
+        }
     }
     
-    public static func unregister<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) {
-        unregister{ $0 == getKeyComparison(type: type, name: name, container: container) }
-    }
-    
-    public static func unregister<T, N: Hashable>(type: T.Type, name: N) {
-        unregister{ $0 == getKeyComparison(type: type, name: name) }
-    }
-    
-    public static func unregister<T, C: Hashable>(type: T.Type, container: C) {
-        unregister{ $0 == getKeyComparison(type: type, container: container) }
-    }
-    
-    public static func unregister<N: Hashable, C: Hashable>(name: N, container: C) {
-        unregister{ $0 == getKeyComparison(name: name, container: container) }
-    }
-        
-    public static func unregister<T>(type: T.Type) {
-        unregister{ $0 == getKeyComparison(type: type) }
-    }
-    
-    public static func unregister<N: Hashable>(name: N) {
-        unregister{ $0 == getKeyComparison(name: name) }
-    }
-    
-    public static func unregister<C: Hashable>(container: C) {
-        unregister{ $0 == getKeyComparison(container: container) }
+    public static func unregister() {
+        unregister(keys: keys)
     }
 }
 
