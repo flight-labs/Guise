@@ -34,6 +34,9 @@ public enum Name {
     case `default`
 }
 
+/**
+ Generates a hash value for one or more hashable values.
+ */
 private func hash<H: Hashable>(_ hashables: H...) -> Int {
     // djb2 hash algorithm: http://www.cse.yorku.ca/~oz/hash.html
     // &+ operator handles Int overflow
@@ -47,6 +50,9 @@ private func ??=<T>(lhs: inout T?, rhs: @autoclosure () -> T?) {
     lhs = rhs()
 }
 
+/**
+ A simple non-reentrant lock allowing one writer and multiple readers.
+ */
 private class Lock {
     
     private let lock: UnsafeMutablePointer<pthread_rwlock_t> = {
@@ -77,8 +83,6 @@ private class Lock {
 
 /**
  A unique key under which to register a block in Guise.
- 
- 
 */
 public struct Key: Hashable {
     public let type: String
@@ -140,6 +144,9 @@ public struct Guise {
     private static var lock = Lock()
     private static var registrations = [Key: Dependency]()
     
+    /**
+     Private helper method for registration.
+    */
     private static func register<P, T>(key: Key, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
         lock.write { registrations[key] = Dependency(cached: cached, registration: registration) }
         return key
@@ -321,10 +328,7 @@ public struct Guise {
      ```
     */
     public static func resolve<T, K: Sequence>(keys: K, parameter: Any = (), cached: Bool? = nil) -> [T] where K.Iterator.Element == Key {
-        let dependencies = lock.read {
-            registrations.filter { keys.contains($0.key) }.map{ $0.value }
-        }
-        return dependencies.map { $0.resolve(parameter: parameter, cached: cached) }
+        return lock.read{ registrations.filter{ keys.contains($0.key) }.map{ $0.value } }.map{ $0.resolve(parameter: parameter, cached: cached) }
     }
     
     /**
@@ -394,6 +398,9 @@ public struct Guise {
         return resolve(key: Key(type: T.self, name: Name.default, container: Name.default), parameter: parameter, cached: cached)
     }
     
+    /**
+     Helper method for filtering.
+    */
     private static func filter(type: String?, name: AnyHashable?, container: AnyHashable?) -> [Key] {
         return lock.read {
             var keys = [Key]()
@@ -408,46 +415,74 @@ public struct Guise {
         }
     }
     
+    /**
+     Find all keys for the given type, name, and container.
+    */
     public static func filter<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> [Key] {
         return filter(type: String(reflecting: type), name: name, container: container)
     }
     
+    /**
+     Find all keys for the given type and name, independent of container.
+    */
     public static func filter<T, N: Hashable>(type: T.Type, name: N) -> [Key] {
         return filter(type: String(reflecting: type), name: name, container: nil)
     }
     
+    /**
+     Find all keys for the given type and container, independent of name.
+    */
     public static func filter<T, C: Hashable>(type: T.Type, container: C) -> [Key] {
         return filter(type: String(reflecting: type), name: nil, container: container)
     }
     
+    /**
+     Find all keys for the given name and container, independent of type.
+    */
     public static func filter<N: Hashable, C: Hashable>(name: N, container: C) -> [Key] {
         return filter(type: nil, name: name, container: container)
     }
     
+    /**
+     Find all keys for the given name, independent of the given type and container.
+    */
     public static func filter<N: Hashable>(name: N) -> [Key] {
         return filter(type: nil, name: name, container: nil)
     }
     
+    /**
+     Find all keys for the given container, independent of given type and name.
+    */
     public static func filter<C: Hashable>(container: C) -> [Key] {
         return filter(type: nil, name: nil, container: container)
     }
 
+    /**
+     All keys.
+    */
     public static var keys: [Key] {
         return lock.read { Array(registrations.keys) }
     }
     
-    public static func unregister(key: Key) {
-        unregister(keys: [key])
+    /**
+     Remove the dependencies registered under the given key(s).
+    */
+    public static func unregister(key: Key...) {
+        unregister(keys: key)
     }
     
+    /**
+     Remove the dependencies registered under the given keys.
+    */
     public static func unregister<K: Sequence>(keys: K) where K.Iterator.Element == Key {
-        lock.write {
-            registrations = registrations.filter{ keys.contains($0.key) }.dictionary { $0 }
-        }
+        lock.write { registrations = registrations.filter{ !keys.contains($0.key) }.dictionary { $0 } }
     }
     
-    public static func unregister() {
-        unregister(keys: keys)
+    /**
+     Remove all dependencies.
+    */
+    public static func clear() {
+        lock.write { registrations = [:] }
     }
 }
 
