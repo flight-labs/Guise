@@ -162,32 +162,6 @@ public struct Guise {
         - container: The container in which to register the block.
         - cached: Whether or not to cache the result of the registration block.
         - registration: The block to register with Guise.
-     
-     ## Keys
-     
-     The combination of the type `T`, the `name` and the `container` creates the unique `Key` returned from this
-     method. Any subsequent registration which would produce the same `Key` overwrites the previous one.
-     
-     The `name` and `container` parameters can be any `Hashable` type, such as `String`, `Int`, enumeration types, etc.
-     
-     ## Parameters
-     
-     The registration block can contain zero or one parameters. (Actually, the lack of a parameter is the empty tuple, `()`.)
-     For example:
-     
-     ```
-     // Registration:
-     Guise.register(name: "name", container: "container") {
-        TakesNoParams()
-     }
-     Guise.register(name: "name", container: "container") {
-        (x: Int) in TakesAnInt(x: x)
-     }
-     
-     // Resolution:
-     let tnp: TakesNoParams = Guise.resolve(name: "name", container: "container")!
-     let tai: TakesAnInt = Guise.resolve(name: "name", container: "container", parameter: 3)!
-     ```
     */
     public static func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
         return register(key: Key(type: T.self, name: name, container: container), cached: cached, registration: registration)
