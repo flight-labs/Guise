@@ -543,6 +543,9 @@ public struct Guise {
         return filter(type: String(reflecting: type), name: nil, container: nil, metafilter: nil)
     }
     
+    /**
+     Find all keys with registrations matching the metafilter query.
+    */
     public static func filter<M>(metafilter: @escaping Metafilter<M>) -> [Key] {
         return filter(type: nil, name: nil, container: nil, metafilter: metathunk(metafilter))
     }
