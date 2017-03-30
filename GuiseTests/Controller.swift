@@ -9,7 +9,7 @@
 import Foundation
 import Guise
 
-protocol Controlling {
+protocol Controlling: class {
     func getItems()
 }
 
