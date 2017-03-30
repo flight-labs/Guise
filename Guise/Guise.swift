@@ -419,16 +419,13 @@ public struct Guise {
      
      This method will always return either an empty array or an array with one element.
     */
-    public static func filter<M>(key: Key, metafilter: Metafilter<M>) -> [Key] {
-        return lock.read {
-            guard let dependency = registrations[key] else { return [] }
-            if let metadata = dependency.metadata as? M, metafilter(metadata) { return [key] }
-            return []
-        }
+    public static func filter<M>(key: Key, metafilter: @escaping Metafilter<M>) -> [Key] {
+        guard let dependency = lock.read({ registrations[key] }) else { return [] }
+        return metathunk(metafilter)(dependency.metadata) ? [key] : []
     }
     
     public static  func filter(key: Key) -> [Key] {
-        return lock.read { registrations[key] == nil ? [] : [key] }
+        return lock.read{ registrations[key] == nil ? [] : [key] }
     }
     
     /**
@@ -437,7 +434,7 @@ public struct Guise {
      Because all of type, name, and container are specified, this particular method will return either 
      an empty array or an array with a single value.
     */
-    public static func filter<T, N: Hashable, C: Hashable, M>(type: T.Type, name: N, container: C, metafilter: Metafilter<M>) -> [Key] {
+    public static func filter<T, N: Hashable, C: Hashable, M>(type: T.Type, name: N, container: C, metafilter: @escaping Metafilter<M>) -> [Key] {
         let key = Key(type: type, name: name, container: container)
         return filter(key: key, metafilter: metafilter)
     }
@@ -553,12 +550,9 @@ public struct Guise {
     /**
      Returns true if a registration exists for the given key.
     */
-    public static func exists<M>(key: Key, metafilter: Metafilter<M>) -> Bool {
-        return lock.read {
-            guard let dependency = registrations[key] else { return false }
-            guard let metadata = dependency.metadata as? M else { return false }
-            return metafilter(metadata)
-        }
+    public static func exists<M>(key: Key, metafilter: @escaping Metafilter<M>) -> Bool {
+        guard let dependency = lock.read({ registrations[key] }) else { return false }
+        return metathunk(metafilter)(dependency.metadata)
     }
 
     /**
