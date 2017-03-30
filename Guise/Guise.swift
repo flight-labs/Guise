@@ -449,7 +449,7 @@ public struct Guise {
      Remove the dependencies registered under the given keys.
     */
     public static func unregister<K: Sequence>(keys: K) where K.Iterator.Element == Key {
-        lock.write { registrations = registrations.filter{ !keys.contains($0.key) }.dictionary { $0 } }
+        lock.write { registrations = registrations.filter{ !keys.contains($0.key) }.dictionary() }
     }
     
     /**
@@ -461,11 +461,18 @@ public struct Guise {
 }
 
 extension Array {
-    func dictionary<K: Hashable, V>(transform: (Element) -> (key: K, value: V)) -> [K: V] {
+    /**
+     Reconstruct a dictionary after it's been reduced to an array of key-value pairs by `filter` and the like.
+     
+     ```
+     var dictionary = [1: "ok", 2: "crazy", 99: "abnormal"]
+     dictionary = dictionary.filter{ $0.value == "ok" }.dictionary()
+     ```
+    */
+    func dictionary<K: Hashable, V>() -> [K: V] where Element == Dictionary<K, V>.Element {
         var dictionary = [K: V]()
         for element in self {
-            let entry = transform(element)
-            dictionary[entry.key] = entry.value
+            dictionary[element.key] = element.value
         }
         return dictionary
     }
