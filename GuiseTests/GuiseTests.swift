@@ -18,11 +18,15 @@ enum Container {
     case dogs
 }
 
-struct Human {
+protocol Animal {
+    var name: String { get }
+}
+
+struct Human: Animal {
     let name: String
 }
 
-struct Dog {
+struct Dog: Animal {
     let name: String
 }
 
@@ -111,6 +115,14 @@ class GuiseTests: XCTestCase {
         let keys = Guise.filter(container: Container.people, metafilter: metafilter)
         let people = Guise.resolve(keys: keys) as [Human]
         XCTAssertEqual(2, people.count)
+    }
+    
+    func testMultipleHeterogeneousResolutionsUsingProtocol() {
+        let _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy")
+        let _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido")
+        let keys = Guise.filter(type: Animal.self)
+        let animals = Guise.resolve(keys: keys) as [Animal]
+        XCTAssertEqual(2, animals.count)
     }
     
     func testResolutionWithKeyOfIncorrectTypeReturnsNil() {
