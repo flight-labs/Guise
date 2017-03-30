@@ -50,10 +50,11 @@ class GuiseTests: XCTestCase {
     }
     
     func testClearContainer() {
-        var controller = Guise.resolve(container: "watusi") as Controlling?
+        let container = "watusi"
+        var controller = Guise.resolve(container: container) as Controlling?
         XCTAssertNotNil(controller)
-        Guise.unregister(container: "watusi")
-        controller = Guise.resolve(container: "watusi") as Controlling?
+        Guise.unregister(keys: Guise.filter(container: container))
+        controller = Guise.resolve(container: container) as Controlling?
         XCTAssertNil(controller)
     }
 
@@ -72,11 +73,5 @@ class GuiseTests: XCTestCase {
         let key3 = Guise.register(instance: 3)
         XCTAssertEqual(key1, key2)
         XCTAssertNotEqual(key1, key3)
-    }
-    
-    func testKeyComparison() {
-        let key = Key(type: Key.self, name: Name.default, container: "container")
-        let keyComparison = Guise.getKeyComparison(container: "container")
-        XCTAssertTrue(key == keyComparison)
-    }
+    }    
 }
