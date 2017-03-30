@@ -112,4 +112,22 @@ class GuiseTests: XCTestCase {
         let people = Guise.resolve(keys: keys) as [Human]
         XCTAssertEqual(2, people.count)
     }
+    
+    func testResolutionWithKeyOfIncorrectTypeReturnsNil() {
+        let key = Guise.register(instance: Human(name: "Abraham Lincoln"))
+        // Because key registers a Human, not a Dog, nil is returned.
+        XCTAssertNil(Guise.resolve(key: key) as Dog?)
+    }
+    
+    func testResolutionsWithKeysOfIncorrectTypeAreSkipped() {
+        let _ = Guise.register(instance: Human(name: "Abraham Lincoln"), metadata: HumanMetadata(coolness: 9))
+        let _ = Guise.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
+        let metafilter: Metafilter<HumanMetadata> = { $0.coolness > 5 }
+        let keys = Guise.filter(metafilter: metafilter)
+        // We get back two keys, but they resolve disparate types.
+        XCTAssertEqual(2, keys.count)
+        let humans = Guise.resolve(keys: keys) as [Human]
+        // Because we are resolving Humans, not Dogs, Brian Griffin is skipped.
+        XCTAssertEqual(1, humans.count)
+    }
 }
