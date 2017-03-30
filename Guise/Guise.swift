@@ -106,6 +106,12 @@ public func ==(lhs: Key, rhs: Key) -> Bool {
     return true
 }
 
+/**
+ The type of a registration block.
+ 
+ These are what actually get registered. Guise does not register
+ types or instances directly.
+ */
 public typealias Registration<P, T> = (P) -> T
 
 /**
