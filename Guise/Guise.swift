@@ -234,7 +234,7 @@ public struct Guise {
         - container: The container in which to register the block.
     */
     public static func register<T, N: Hashable, C: Hashable>(instance: T, name: N, container: C, metadata: Any = ()) -> Key {
-        return register(key: Key(type: T.self, name: Name.default, container: Name.default), metadata: metadata, cached: true) { instance }
+        return register(key: Key(type: T.self, name: name, container: container), metadata: metadata, cached: true) { instance }
     }
     
     /**
