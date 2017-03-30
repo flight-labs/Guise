@@ -45,15 +45,6 @@ class GuiseTests: XCTestCase {
         XCTAssertNotEqual(key1, key3)
     }
     
-    func testRegistrationAndResolution() {
-        let _ = Guise.register{ Human(name: "Bob") }
-        guard let human = Guise.resolve() as Human? else {
-            XCTFail("Registration failed.")
-            return
-        }
-        XCTAssertEqual(human.name, "Bob", "Registration failed.")
-    }
-    
     func testFilteringAndMetadata() {
         let names = ["Huayna Capac": 7, "Huáscar": 1, "Atahualpa": 9]
         for (name, coolness) in names {
@@ -90,6 +81,25 @@ class GuiseTests: XCTestCase {
         let _ = Guise.register(cached: true) { Controller() as Controlling }
         let controller1 = Guise.resolve()! as Controlling
         let controller2 = Guise.resolve()! as Controlling
+        // Because we asked Guise to cache this registration, we should get back the same reference every time.
         XCTAssert(controller1 === controller2)
+        // Here we've asked Guise to call the registered block again, thus creating a new instance.
+        let controller3 = Guise.resolve(cached: false)! as Controlling
+        XCTAssertFalse(controller1 === controller3)
+        // However, the existing cached instance is still there.
+        let controller4 = Guise.resolve()! as Controlling
+        XCTAssert(controller1 === controller4)
+    }
+    
+    func testMultipleResolutionsWithMetafilter() {
+        let names = ["Huayna Capac": 7, "Huáscar": 1, "Atahualpa": 9]
+        for (name, coolness) in names {
+            let _ = Guise.register(instance: Human(name: name), name: name, container: Container.people, metadata: HumanMetadata(coolness: coolness))
+        }
+        let _ = Guise.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
+        let metafilter: Metafilter<HumanMetadata> = { $0.coolness > 1 }
+        let keys = Guise.filter(container: Container.people, metafilter: metafilter)
+        let people = Guise.resolve(keys: keys) as [Human]
+        XCTAssertEqual(2, people.count)
     }
 }
