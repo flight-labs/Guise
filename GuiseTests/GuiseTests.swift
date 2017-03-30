@@ -13,6 +13,10 @@ enum BundleName {
     case main
 }
 
+struct Human {
+    let name: String
+}
+
 class GuiseTests: XCTestCase {
 
     override class func setUp() {
@@ -21,8 +25,12 @@ class GuiseTests: XCTestCase {
         let _ = Guise.register(instance: Bundle(for: GuiseTests.self), name: BundleName.main)
         let _ = Guise.register(cached: true) { MemoryCache() as Database }
         let _ = Guise.register { Server() as Serving }
-        let _ = Guise.register { Controller() as Controlling }
+        let _ = Guise.register(metadata: ["this": 3, 3: "this"]) { Controller() as Controlling }
         let _ = Guise.register(container: "watusi") { Controller() as Controlling }
+        
+        let _ = Guise.register(instance: Human(name: "Fred"), name: "Fred", metadata: ["coolness": 4])
+        let _ = Guise.register(instance: Human(name: "Greg"), name: "Greg", metadata: ["coolness": 1])
+        let _ = Guise.register(instance: Human(name: "Blain"), name: "Blain", metadata: ["coolness": 10])
     }
     
     func testResolveMainBundle() {
@@ -65,6 +73,17 @@ class GuiseTests: XCTestCase {
         let database = Guise.resolve() as Database!
         XCTAssertNotNil(database)
         XCTAssertEqual(database!.retrieveItems().count, 3)
+    }
+    
+    func testMetadata() {
+        let keys = Guise.filter { metadata in metadata["this"] != nil }
+        XCTAssertEqual(keys.count, 1)
+    }
+    
+    func testResolveAllHumansWithCoolnessGreaterThan1() {
+        let keys = Guise.filter(type: Human.self) { metadata in ((metadata["coolness"] ?? 0) as! Int) > 1}
+        let humans: [Human] = Guise.resolve(keys: keys)
+        XCTAssertEqual(humans.count, 2)
     }
 
     func testKeyEquality() {
