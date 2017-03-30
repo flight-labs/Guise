@@ -120,6 +120,14 @@ public typealias Registration<P, T> = (P) -> T
 public typealias Metafilter<M> = (M) -> Bool
 
 /**
+ Used in filters.
+ 
+ This type exists primarily to emphasize that the `metathunk` method should be applied to
+ `Metafilter<M>` before the metafilter is passed to the final `filter` or `exists` method.
+ */
+private typealias Metathunk = Metafilter<Any>
+
+/**
  This class creates and holds a type-erasing thunk over a registration block.
  */
 private class Dependency {
@@ -393,14 +401,22 @@ public struct Guise {
         return resolve(key: Key(type: T.self, name: Name.default, container: Name.default), parameter: parameter, cached: cached)
     }
     
-    private static func metathunk<M>(_ metafilter: @escaping Metafilter<M>) -> Metafilter<Any> {
+    /**
+     Provides a thunk between `Metafilter<M>` and `Metafilter<Any>`.
+     
+     Checks to make sure that the metadata being checked actually is of type `M`.
+    */
+    private static func metathunk<M>(_ metafilter: @escaping Metafilter<M>) -> Metathunk {
         return {
             guard let metadata = $0 as? M else { return false }
             return metafilter(metadata)
         }
     }
     
-    private static func filter(type: String?, name: AnyHashable?, container: AnyHashable?, metafilter: Metafilter<Any>? = nil) -> [Key] {
+    /**
+     Most of the `filter` overloads end up here.
+    */
+    private static func filter(type: String?, name: AnyHashable?, container: AnyHashable?, metafilter: Metathunk? = nil) -> [Key] {
         return lock.read {
             var keys = [Key]()
             for (key, dependency) in registrations {
@@ -534,7 +550,7 @@ public struct Guise {
     /**
      Helper method for filtering.
      */
-    private static func exists(type: String?, name: AnyHashable?, container: AnyHashable?, metafilter: Metafilter<Any>? = nil) -> Bool {
+    private static func exists(type: String?, name: AnyHashable?, container: AnyHashable?, metafilter: Metathunk? = nil) -> Bool {
         return lock.read {
             for (key, dependency) in registrations {
                 if let type = type, type != key.type { continue }
@@ -626,7 +642,14 @@ public struct Guise {
     }
     
     /**
-     Returns true if there are any keys registered in the given container.
+     Returns true if any registrations exist under the given name.
+    */
+    public static func exists<N: Hashable>(name: N) -> Bool {
+        return exists(type: nil, name: name, container: nil, metafilter: nil)
+    }
+    
+    /**
+     Returns true if there are any keys registered in the given container, matching the given metafilter query.
     */
     public static func exists<C: Hashable, M>(container: C, metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(type: nil, name: nil, container: container, metafilter: metathunk(metafilter))
@@ -640,7 +663,7 @@ public struct Guise {
     }
     
     /**
-     Returns true if there are any keys registered with the given type in any container, independent of name.
+     Returns true if there are any keys registered with the given type and matching the metafilter query in any container, independent of name.
     */
     public static func exists<T, M>(type: T.Type, metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(type: String(reflecting: type), name: nil, container: nil, metafilter: metathunk(metafilter))
@@ -653,6 +676,9 @@ public struct Guise {
         return exists(type: String(reflecting: type), name: nil, container: nil, metafilter: nil)
     }
     
+    /**
+     Returns true if any registrations exist matching the given metafilter, regardless of type, name, or container.
+    */
     public static func exists<M>(metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(type: nil, name: nil, container: nil, metafilter: metathunk(metafilter))
     }
