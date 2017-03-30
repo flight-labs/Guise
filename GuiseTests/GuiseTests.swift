@@ -125,6 +125,17 @@ class GuiseTests: XCTestCase {
         XCTAssertEqual(2, animals.count)
     }
     
+    func testMultipleResolutionsReturningDictionary() {
+        let _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy", metadata: 3)
+        let _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido", metadata: 10)
+        let _ = Guise.register(instance: 7, metadata: 4)
+        let metafilter: Metafilter<Int> = { $0 >= 3 }
+        let keys = Guise.filter(metafilter: metafilter)
+        let animals = Guise.resolve(keys: keys) as [Key: Animal]
+        // The registration of the integer 7 above is skipped, because it is not an Animal.
+        XCTAssertEqual(2, animals.count)
+    }
+    
     func testResolutionWithKeyOfIncorrectTypeReturnsNil() {
         let key = Guise.register(instance: Human(name: "Abraham Lincoln"))
         // Because key registers a Human, not a Dog, nil is returned.
