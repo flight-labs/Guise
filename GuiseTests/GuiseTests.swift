@@ -52,10 +52,20 @@ class GuiseTests: XCTestCase {
         }
         XCTAssertEqual(3, Guise.filter(container: Container.people).count)
         let _ = Guise.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
-        let metafilter: Metafilter<HumanMetadata> = { $0.coolness > 1 }
+        var metafilter: Metafilter<HumanMetadata> = { $0.coolness > 1 }
         // Only two humans in Container.people have HumanMetadata with coolness > 1.
         // Augustus does not have HumanMetadata. He has Int metadata, so he is simply skipped.
         XCTAssertEqual(2, Guise.filter(container: Container.people, metafilter: metafilter).count)
+        let _ = Guise.register(instance: Human(name: "Trump"), metadata: HumanMetadata(coolness: 0))
+        // This metafilter effectively queries for all registrations using HumanMetadata,
+        // regardless of the value of this Metadata.
+        metafilter = { _ in true }
+        // We have 4 Humans matching the metafilter query. 3 in Container.people and 1 in the default container.
+        XCTAssertEqual(4, Guise.filter(type: Human.self, metafilter: metafilter).count)
+        let _ = Guise.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
+        // After we added a dog with HumanMetadata, we query by metafilter only, ignoring type and container.
+        // We have 5 matching registrations: the three Sapa Incas, Trump, and Brian Griffin.
+        XCTAssertEqual(5, Guise.filter(metafilter: metafilter).count)
     }
     
     func testRegistrationsWithEqualKeysOverwrite() {
