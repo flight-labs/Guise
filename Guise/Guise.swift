@@ -441,16 +441,18 @@ public struct Guise {
     }
     
     /**
-     Find the given key, optionally matching the metafilter query.
+     Find the given key matching the metafilter query.
      
-     This method will always return either an empty array or an array with one element.
+     This method will always return either an empty set or a set with one element.
     */
-    public static func filter<M>(key: Key, metafilter: @escaping Metafilter<M>) -> [Key] {
+    public static func filter<M>(key: Key, metafilter: @escaping Metafilter<M>) -> Set<Key> {
         guard let dependency = lock.read({ registrations[key] }) else { return [] }
         return metathunk(metafilter)(dependency.metadata) ? [key] : []
     }
     
-    public static  func filter(key: Key) -> [Key] {
+    /**
+    */
+    public static  func filter(key: Key) -> Set<Key> {
         return lock.read{ registrations[key] == nil ? [] : [key] }
     }
     
@@ -460,7 +462,7 @@ public struct Guise {
      Because all of type, name, and container are specified, this particular method will return either 
      an empty array or an array with a single value.
     */
-    public static func filter<T, N: Hashable, C: Hashable, M>(type: T.Type, name: N, container: C, metafilter: @escaping Metafilter<M>) -> [Key] {
+    public static func filter<T, N: Hashable, C: Hashable, M>(type: T.Type, name: N, container: C, metafilter: @escaping Metafilter<M>) -> Set<Key> {
         let key = Key(type: type, name: name, container: container)
         return filter(key: key, metafilter: metafilter)
     }
@@ -471,7 +473,7 @@ public struct Guise {
      Because all of type, name, and container are specified, this particular method will return either
      an empty array or an array with a single value.
      */
-    public static func filter<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> [Key] {
+    public static func filter<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> Set<Key> {
         let key = Key(type: type, name: name, container: container)
         return filter(key: key)
     }
