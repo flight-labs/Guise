@@ -426,15 +426,15 @@ public struct Guise {
     /**
      Most of the `filter` overloads end up here.
     */
-    private static func filter(type: String?, name: AnyHashable?, container: AnyHashable?, metafilter: Metathunk? = nil) -> [Key] {
+    private static func filter(type: String?, name: AnyHashable?, container: AnyHashable?, metafilter: Metathunk? = nil) -> Set<Key> {
         return lock.read {
-            var keys = [Key]()
+            var keys = Set<Key>()
             for (key, dependency) in registrations {
                 if let type = type, type != key.type { continue }
                 if let name = name, name != key.name { continue }
                 if let container = container, container != key.container { continue }
                 if let metafilter = metafilter, !metafilter(dependency.metadata) { continue }
-                keys.append(key)
+                keys.insert(key)
             }
             return keys
         }
@@ -479,84 +479,84 @@ public struct Guise {
     /**
      Find all keys for the given type and name, independent of container.
     */
-    public static func filter<T, N: Hashable, M>(type: T.Type, name: N, metafilter: @escaping Metafilter<M>) -> [Key] {
+    public static func filter<T, N: Hashable, M>(type: T.Type, name: N, metafilter: @escaping Metafilter<M>) -> Set<Key> {
         return filter(type: String(reflecting: type), name: name, container: nil, metafilter: metathunk(metafilter))
     }
 
     /**
      Find all keys for the given type and name, independent of container.
      */
-    public static func filter<T, N: Hashable>(type: T.Type, name: N) -> [Key] {
+    public static func filter<T, N: Hashable>(type: T.Type, name: N) -> Set<Key> {
         return filter(type: String(reflecting: type), name: name, container: nil, metafilter: nil)
     }
     
     /**
      Find all keys for the given type and container, independent of name.
     */
-    public static func filter<T, C: Hashable, M>(type: T.Type, container: C, metafilter: @escaping Metafilter<M>) -> [Key] {
+    public static func filter<T, C: Hashable, M>(type: T.Type, container: C, metafilter: @escaping Metafilter<M>) -> Set<Key> {
         return filter(type: String(reflecting: type), name: nil, container: container, metafilter: metathunk(metafilter))
     }
     
     /**
      Find all keys for the given name and container, independent of type.
     */
-    public static func filter<N: Hashable, C: Hashable, M>(name: N, container: C, metafilter: @escaping Metafilter<M>) -> [Key] {
+    public static func filter<N: Hashable, C: Hashable, M>(name: N, container: C, metafilter: @escaping Metafilter<M>) -> Set<Key> {
         return filter(type: nil, name: name, container: container, metafilter: metathunk(metafilter))
     }
 
     /**
      Find all keys for the given name and container, independent of type.
      */
-    public static func filter<N: Hashable, C: Hashable>(name: N, container: C) -> [Key] {
+    public static func filter<N: Hashable, C: Hashable>(name: N, container: C) -> Set<Key> {
         return filter(type: nil, name: name, container: container, metafilter: nil)
     }
     
     /**
      Find all keys for the given name, independent of the given type and container.
     */
-    public static func filter<N: Hashable, M>(name: N, metafilter: @escaping Metafilter<M>) -> [Key] {
+    public static func filter<N: Hashable, M>(name: N, metafilter: @escaping Metafilter<M>) -> Set<Key> {
         return filter(type: nil, name: name, container: nil, metafilter: metathunk(metafilter))
     }
 
     /**
      Find all keys for the given name, independent of the given type and container.
      */
-    public static func filter<N: Hashable>(name: N) -> [Key] {
+    public static func filter<N: Hashable>(name: N) -> Set<Key> {
         return filter(type: nil, name: name, container: nil, metafilter: nil)
     }
     
     /**
      Find all keys for the given container, independent of given type and name.
     */
-    public static func filter<C: Hashable, M>(container: C, metafilter: @escaping Metafilter<M>) -> [Key] {
+    public static func filter<C: Hashable, M>(container: C, metafilter: @escaping Metafilter<M>) -> Set<Key> {
         return filter(type: nil, name: nil, container: container, metafilter: metathunk(metafilter))
     }
 
     /**
      Find all keys for the given container, independent of given type and name.
      */
-    public static func filter<C: Hashable>(container: C) -> [Key] {
+    public static func filter<C: Hashable>(container: C) -> Set<Key> {
         return filter(type: nil, name: nil, container: container, metafilter: nil)
     }
     
     /**
      Find all keys for the given type, independent of name and container.
     */
-    public static func filter<T, M>(type: T.Type, metafilter: @escaping Metafilter<M>) -> [Key] {
+    public static func filter<T, M>(type: T.Type, metafilter: @escaping Metafilter<M>) -> Set<Key> {
         return filter(type: String(reflecting: type), name: nil, container: nil, metafilter: metathunk(metafilter))
     }
     
     /**
      Find all keys for the given type, independent of name and container.
      */
-    public static func filter<T>(type: T.Type) -> [Key] {
+    public static func filter<T>(type: T.Type) -> Set<Key> {
         return filter(type: String(reflecting: type), name: nil, container: nil, metafilter: nil)
     }
     
     /**
      Find all keys with registrations matching the metafilter query.
     */
-    public static func filter<M>(metafilter: @escaping Metafilter<M>) -> [Key] {
+    public static func filter<M>(metafilter: @escaping Metafilter<M>) -> Set<Key> {
         return filter(type: nil, name: nil, container: nil, metafilter: metathunk(metafilter))
     }
     
