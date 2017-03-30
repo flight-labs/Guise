@@ -295,6 +295,7 @@ public struct Guise {
      when the dependency was registered. In most cases, this is what you want.
     */
     public static func resolve<T>(key: Key, parameter: Any = (), cached: Bool? = nil) -> T? {
+        if String(reflecting: T.self) != key.type { return nil }
         guard let dependency = lock.read({ registrations[key] }) else { return nil }
         return dependency.resolve(parameter: parameter, cached: cached)
     }
@@ -322,7 +323,16 @@ public struct Guise {
      ```
     */
     public static func resolve<T, K: Sequence>(keys: K, parameter: Any = (), cached: Bool? = nil) -> [T] where K.Iterator.Element == Key {
-        return lock.read{ registrations.filter{ keys.contains($0.key) }.map{ $0.value } }.map{ $0.resolve(parameter: parameter, cached: cached) }
+        return lock.read {
+            let type = String(reflecting: T.self)
+            var resolutions = [T]()
+            for (key, dependency) in registrations {
+                if type != key.type { continue }
+                if !keys.contains(key) { continue }
+                resolutions.append(dependency.resolve(parameter: parameter, cached: cached))
+            }
+            return resolutions
+        }
     }
     
     /**
