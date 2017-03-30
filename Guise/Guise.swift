@@ -341,7 +341,16 @@ public struct Guise {
      - returns: A dictionary mapping the keys to their resolved dependencies.
     */
     public static func resolve<T, K: Sequence>(keys: K, parameter: Any = (), cached: Bool? = nil) -> [Key: T] where K.Iterator.Element == Key {
-        return lock.read{ registrations.filter{ keys.contains($0.key) }.map{ (key: $0.key, value: $0.value.resolve(parameter: parameter, cached: cached)) }.dictionary() }
+        return lock.read {
+            let type = String(reflecting: T.self)
+            var resolutions = [Key: T]()
+            for (key, dependency) in registrations {
+                if type != key.type { continue }
+                if !keys.contains(key) { continue }
+                resolutions[key] = dependency.resolve(parameter: parameter, cached: cached)
+            }
+            return resolutions
+        }
     }
     
     /**
