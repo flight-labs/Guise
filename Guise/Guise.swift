@@ -590,7 +590,7 @@ public struct Guise {
     }
     
     /**
-     Returns true if a registration exists for the given key.
+     Returns true if a registration exists for `key` and matching the `metafilter` query.
     */
     public static func exists<M>(key: Key, metafilter: @escaping Metafilter<M>) -> Bool {
         guard let dependency = lock.read({ registrations[key] }) else { return false }
