@@ -323,16 +323,17 @@ public struct Guise {
      ```
     */
     public static func resolve<T, K: Sequence>(keys: K, parameter: Any = (), cached: Bool? = nil) -> [T] where K.Iterator.Element == Key {
-        return lock.read {
-            let type = String(reflecting: T.self)
-            var resolutions = [T]()
+        let type = String(reflecting: T.self)
+        let dependencies: [Dependency] = lock.read {
+            var dependencies = [Dependency]()
             for (key, dependency) in registrations {
                 if type != key.type { continue }
                 if !keys.contains(key) { continue }
-                resolutions.append(dependency.resolve(parameter: parameter, cached: cached))
+                dependencies.append(dependency)
             }
-            return resolutions
+            return dependencies
         }
+        return dependencies.map{ $0.resolve(parameter: parameter, cached: cached) }
     }
     
     /**
@@ -341,16 +342,17 @@ public struct Guise {
      - returns: A dictionary mapping the keys to their resolved dependencies.
     */
     public static func resolve<T, K: Sequence>(keys: K, parameter: Any = (), cached: Bool? = nil) -> [Key: T] where K.Iterator.Element == Key {
-        return lock.read {
-            let type = String(reflecting: T.self)
-            var resolutions = [Key: T]()
+        let type = String(reflecting: T.self)
+        let dependencies: [Key: Dependency] = lock.read {
+            var dependencies = [Key: Dependency]()
             for (key, dependency) in registrations {
                 if type != key.type { continue }
                 if !keys.contains(key) { continue }
-                resolutions[key] = dependency.resolve(parameter: parameter, cached: cached)
+                dependencies[key] = dependency
             }
-            return resolutions
+            return dependencies
         }
+        return dependencies.map{ (key: $0.key, value: $0.value.resolve(parameter: parameter, cached: cached)) }.dictionary()
     }
     
     /**
