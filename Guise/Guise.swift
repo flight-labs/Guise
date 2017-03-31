@@ -123,7 +123,7 @@ public typealias Metafilter<M> = (M) -> Bool
  Used in filters.
  
  This type exists primarily to emphasize that the `metathunk` method should be applied to
- `Metafilter<M>` before the metafilter is passed to the final `filter` or `exists` method.
+ `Metafilter<M>` before the metafilter is passed to the master `filter` or `exists` method.
  */
 private typealias Metathunk = Metafilter<Any>
 
