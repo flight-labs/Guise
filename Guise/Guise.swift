@@ -107,12 +107,12 @@ public func ==(lhs: Key, rhs: Key) -> Bool {
 }
 
 /**
- The type of a registration block.
+ The type of a resolution block.
  
  These are what actually get registered. Guise does not register
  types or instances directly.
  */
-public typealias Registration<P, T> = (P) -> T
+public typealias Resolution<P, T> = (P) -> T
 
 /**
  The type of a metadata filter.
@@ -134,27 +134,27 @@ private class Dependency {
     /** Default lifecycle for the dependency. */
     internal let cached: Bool
     /** Registered block. */
-    private let registration: (Any) -> Any
+    private let resolution: (Any) -> Any
     /** Cached instance, if any. */
     private var instance: Any?
     /** Metadata */
     internal let metadata: Any
     
-    init<P, T>(metadata: Any, cached: Bool, registration: @escaping Registration<P, T>) {
+    init<P, T>(metadata: Any, cached: Bool, resolution: @escaping Resolution<P, T>) {
         self.metadata = metadata
         self.cached = cached
-        self.registration = { param in registration(param as! P) }
+        self.resolution = { param in resolution(param as! P) }
     }
     
     func resolve<T>(parameter: Any, cached: Bool?) -> T {
         var result: T
         if cached ?? self.cached {
             if instance == nil {
-                instance = registration(parameter)
+                instance = resolution(parameter)
             }
             result = instance! as! T
         } else {
-            result = registration(parameter) as! T
+            result = resolution(parameter) as! T
         }
         return result
     }
@@ -169,8 +169,8 @@ public struct Guise {
     /**
      Private helper method for registration.
     */
-    private static func register<P, T>(key: Key, metadata: Any = (), cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
-        lock.write { registrations[key] = Dependency(metadata: metadata, cached: cached, registration: registration) }
+    private static func register<P, T>(key: Key, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key {
+        lock.write { registrations[key] = Dependency(metadata: metadata, cached: cached, resolution: resolution) }
         return key
     }
     
@@ -184,10 +184,10 @@ public struct Guise {
         - container: The container in which to register the block.
         - metadata: Arbitrary metadata associated with this registration.
         - cached: Whether or not to cache the result of the registration block.
-        - registration: The block to register with Guise.
+        - resolution: The block to register with Guise.
     */
-    public static func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, metadata: Any = (), cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
-        return register(key: Key(type: T.self, name: name, container: container), metadata: metadata, cached: cached, registration: registration)
+    public static func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key {
+        return register(key: Key(type: T.self, name: name, container: container), metadata: metadata, cached: cached, resolution: resolution)
     }
     
     /**
@@ -198,10 +198,10 @@ public struct Guise {
      - parameters:
         - name: The name under which to register the block.
         - cached: Whether or not to cache the result of the registration block.
-        - registration: The block to register with Guise.
+        - resolution: The block to register with Guise.
     */
-    public static func register<P, T, N: Hashable>(name: N, metadata: Any = (), cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
-        return register(key: Key(type: T.self, name: name, container: Name.default), metadata: metadata, cached: cached, registration: registration)
+    public static func register<P, T, N: Hashable>(name: N, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key {
+        return register(key: Key(type: T.self, name: name, container: Name.default), metadata: metadata, cached: cached, resolution: resolution)
     }
     
     /**
@@ -212,10 +212,10 @@ public struct Guise {
      - parameters:
          - container: The container in which to register the block.
          - cached: Whether or not to cache the result of the registration block.
-         - registration: The block to register with Guise.
+         - resolution: The block to register with Guise.
     */
-    public static func register<P, T, C: Hashable>(container: C, metadata: Any = (), cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
-        return register(key: Key(type: T.self, name: Name.default, container: container), metadata: metadata, cached: cached, registration: registration)
+    public static func register<P, T, C: Hashable>(container: C, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key {
+        return register(key: Key(type: T.self, name: Name.default, container: container), metadata: metadata, cached: cached, resolution: resolution)
     }
     
     /**
@@ -225,10 +225,10 @@ public struct Guise {
      
      - parameters:
          - cached: Whether or not to cache the result of the registration block.
-         - registration: The block to register with Guise.
+         - resolution: The block to register with Guise.
     */
-    public static func register<P, T>(metadata: Any = (), cached: Bool = false, registration: @escaping Registration<P, T>) -> Key {
-        return register(key: Key(type: T.self, name: Name.default, container: Name.default), metadata: metadata, cached: cached, registration: registration)
+    public static func register<P, T>(metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key {
+        return register(key: Key(type: T.self, name: Name.default, container: Name.default), metadata: metadata, cached: cached, resolution: resolution)
     }
     
     /**
