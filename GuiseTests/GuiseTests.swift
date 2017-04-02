@@ -42,9 +42,9 @@ class GuiseTests: XCTestCase {
     }
     
     func testKeyEquality() {
-        let key1 = Key(type: Int.self, name: "three", container: Name.default)
-        let key2 = Key(type: Int.self, name: "three", container: Name.default)
-        let key3 = Key(type: Int.self, name: Name.default, container: Name.default)
+        let key1 = Key<Int>(name: "three", container: Name.default)
+        let key2 = Key<Int>(name: "three", container: Name.default)
+        let key3 = Key<Int>(name: Name.default, container: Name.default)
         XCTAssertEqual(key1, key2)
         XCTAssertNotEqual(key1, key3)
     }
@@ -85,6 +85,15 @@ class GuiseTests: XCTestCase {
         XCTAssertEqual(brutus.name, "Brutus")
     }
     
+    func testMultipleRegistrations() {
+        let keys: Set<Key<Animal>> = [Key(name: "Lucy"), Key(name: "Fido")]
+        let _ = Guise.register(keys: keys) { (name: String) in Dog(name: name) as Animal }
+        var name = "Fido"
+        XCTAssertNotNil(Guise.resolve(name: name, parameter: name) as Animal?)
+        name = "Lucy"
+        XCTAssertNotNil(Guise.resolve(name: name, parameter: name) as Animal?)
+    }
+    
     func testResolutionWithParameter() {
         let _ = Guise.register(container: Container.dogs) { (name: String) in Dog(name: name) }
         let dog = Guise.resolve(container: Container.dogs, parameter: "Brutus")! as Dog
@@ -112,7 +121,7 @@ class GuiseTests: XCTestCase {
         }
         let _ = Guise.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
         let metafilter: Metafilter<HumanMetadata> = { $0.coolness > 1 }
-        let keys = Guise.filter(container: Container.people, metafilter: metafilter)
+        let keys = Guise.filter(type: Human.self, container: Container.people, metafilter: metafilter)
         let people = Guise.resolve(keys: keys) as [Human]
         XCTAssertEqual(2, people.count)
     }
@@ -130,16 +139,15 @@ class GuiseTests: XCTestCase {
         let _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido", metadata: 10)
         let _ = Guise.register(instance: 7, metadata: 4)
         let metafilter: Metafilter<Int> = { $0 >= 3 }
-        let keys = Guise.filter(metafilter: metafilter)
-        let animals = Guise.resolve(keys: keys) as [Key: Animal]
+        let keys = Guise.filter(type: Animal.self, metafilter: metafilter)
+        let animals = Guise.resolve(keys: keys) as [Key<Animal>: Animal]
         // The registration of the integer 7 above is skipped, because it is not an Animal.
         XCTAssertEqual(2, animals.count)
     }
     
-    func testResolutionWithKeyOfIncorrectTypeReturnsNil() {
-        let key = Guise.register(instance: Human(name: "Abraham Lincoln"))
-        // Because key registers a Human, not a Dog, nil is returned.
-        XCTAssertNil(Guise.resolve(key: key) as Dog?)
+    func testResolutionByKey() {
+        let key = Guise.register(instance: Dog(name: "Lucy"))
+        XCTAssertNotNil(Guise.resolve(key: key) as Dog?)
     }
     
     func testResolutionsWithKeysOfIncorrectTypeAreSkipped() {
@@ -149,7 +157,7 @@ class GuiseTests: XCTestCase {
         let keys = Guise.filter(metafilter: metafilter)
         // We get back two keys, but they resolve disparate types.
         XCTAssertEqual(2, keys.count)
-        let humans = Guise.resolve(keys: keys) as [Human]
+        let humans = Guise.resolve(keys: keys.typed()) as [Human]
         // Because we are resolving Humans, not Dogs, Brian Griffin is skipped.
         XCTAssertEqual(1, humans.count)
     }
