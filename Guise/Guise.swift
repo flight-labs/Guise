@@ -733,23 +733,23 @@ public struct Guise {
     /**
      Returns true if a registration exists for `key` and matching the `metafilter` query.
     */
-    public static func exists<M>(key: AnyKey, metafilter: @escaping Metafilter<M>) -> Bool {
-        guard let dependency = lock.read({ registrations[key] }) else { return false }
+    public static func exists<M>(key: Keyed, metafilter: @escaping Metafilter<M>) -> Bool {
+        guard let dependency = lock.read({ registrations[AnyKey(key)] }) else { return false }
         return metathunk(metafilter)(dependency.metadata)
     }
 
     /**
      Returns true if a registration exists for the given key.
      */
-    public static func exists(key: AnyKey) -> Bool {
-        return lock.read { return registrations[key] != nil }
+    public static func exists(key: Keyed) -> Bool {
+        return lock.read { return registrations[AnyKey(key)] != nil }
     }
     
     /**
      Returns true if a key with the given type, name, and container exists.
     */
     public static func exists<T, N: Hashable, C: Hashable, M>(type: T.Type, name: N, container: C, metafilter: @escaping Metafilter<M>) -> Bool {
-        return exists(key: AnyKey(type: type, name: name, container: container), metafilter: metathunk(metafilter))
+        return exists(key: Key<T>(name: name, container: container), metafilter: metathunk(metafilter))
     }
 
     /**
