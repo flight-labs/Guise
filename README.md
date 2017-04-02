@@ -55,7 +55,7 @@ let accountService = Guise.register{ AccountService() as AccountServicing }
 #endif
 ```
 
-The return type of our registration block `(P) -> T` is now the `AccountServicing` protocol, which both `AccountService` and `MockAccountService` implement. When resolving, we must specify this exact type:
+The return type of our resolution block `(P) -> T` is now the `AccountServicing` protocol, which both `AccountService` and `MockAccountService` implement. When resolving, we must specify this exact type:
 
 ```swift
 let accountService = Guise.resolve()! as AccountServicing
@@ -63,7 +63,7 @@ let accountService = Guise.resolve()! as AccountServicing
 
 #### Named Registrations
 
-Registrations are recorded based on the type returned by the registration block.
+Registrations are recorded based on the type returned by the resolution block.
 
 ```swift
 Guise.register{ AccountService() as AccountServicing }
@@ -82,6 +82,17 @@ We can then resolve the one we want quite easily.
 ```swift
 let accountService = Guise.resolve(name: "real")! as AccountServicing
 ```
+
+Any `Hashable` type can be used as a `name`.
+
+```swift
+enum Person { // Simple enumerations are hashable by default in Swift
+case isabella
+case miaoting
+}
+Guise.register(name: Person.isabella) { Person(name: "Isabella") }
+```
+
 #### Parameters
 
 It is sometimes useful to pass a parameter when resolving, because the initializer of the registered type requires it.
@@ -109,4 +120,147 @@ let accountService = Guise.resolve(parameter: (url: url, foo: 17, bar: 3.9))! as
 
 #### Caching
 
-By default, Guise does not cache. This means that the registration block is called every time 
+By default, Guise does not cache. This means that the resolution block is called every time `resolve` is called. Guise can cache the result of the resolution block so that it is not needed again.
+
+```swift
+Guise.register(cached: true) { AccountService() }
+```
+
+The first time the block is resolved, Guise caches the result and all subsequent calls use this cached result. This can be overridden during resolution by passing an explicit value for `cached`.
+
+```swift
+let accountService = Guise.resolve(cached: false)! as AccountService
+```
+
+What happens if `cached: true` is passed during resolution when the block was not originally registered to be cached? Guise will cache the result anyway, but subsequent resolutions will still call the resolution block. However, the next time `cached: true` is passed when resolving, the cached value will be returned.
+
+#### Registering Instances
+
+A common case is to register an already-initialized instance rather than a resolution block. Guise has an overload to handle this case easily.
+
+```swift
+Guise.register(instance: AccountService() as AccountServicing)
+```
+
+This is exactly equivalent to the following:
+
+```swift
+let accountService = AccountService()
+Guise.register(cached: true) { accountService as AccountServicing }
+```
+
+#### Containers
+
+Registrations can be differentiated by placing them in containers. A container is simply another parameter that must be passed when registering and resolving. As with names, any `Hashable` type can be used.
+
+```swift
+enum Environment {
+  case development
+  case test
+  case production
+}
+let accountService = Guise.register(instance: AccountService() as AccountServicing, container: Enviroment.test)
+// Later, when resolving
+let accountService = Guise.resolve(container: Environment.test)! as AccountServicing
+```
+
+Names and containers can be used together.
+
+```swift
+Guise.register(instance: Dog(name: "Fido"), name: Name.fido, container: Container.dogs)
+let fido = Guise.resolve(name: Name.fido, container: Container.dogs)! as Dog
+```
+
+#### Keys
+
+Every registration produces a `Key`. This `Key` uniquely identifies the registration, and any subsequent registration that would produce the same `Key` overwrites the previous one.
+
+```swift
+let key = Guise.register{ AccountService() as AccountServicing }
+```
+
+Each `Key` records the registration's type (which is always the return type of the resolution block `(P) -> T`), `name`, and `container`. While type must always be specified, `name` and `container` default to `Name.default` if they are not given. The following two registrations are functionally identical:
+
+```swift
+let key = Guise.register{ AccountService() as AccountServicing }
+let key = Guise.register(name: Name.default, container: Name.default) { AccountService() as AccountServicing }
+```
+
+Keys can be constructed directly, if desired.
+
+```swift
+let key = Key(type: AccountServicing.self, name: Name.default, container: Name.default)
+```
+
+In most cases, keys can be ignored. However, they are used in some scenarios:
+
+- When unregistering.
+- When searching for registrations using the `filter` methods, a collection of type `Set<Key>` is returned.
+- When performing multiple resolutions.
+
+Each of these scenarios will be discussed below.
+
+#### Metadata
+
+Arbitrary metadata can be specified during registration. (Note that the default metadata is not `nil`, but `()`, i.e., an "instance" of `Void`).
+
+```swift
+let name = "Fido"
+Guise.register(instance: Dog(name: name), name: name, metadata: 7)
+```
+
+To retrieve metadata, a `Key` must be used.
+
+```swift
+let key = Key(type: Dog.self, name: "Fido", container: Name.default)
+let metadata = Guise.metadata(for: key)! as Int
+```
+
+If there is no metadata for the `Key`, or if it is not of the specified type, `nil` is returned.
+
+#### Filtering
+
+Sometimes it is convenient to find all of the registrations matching some criteria. For instance, we might want to know all of the registrations in a certain container, or all of those registered under a certain type, or matching certain metadata, or any combination of these.
+
+The overloads of the `filter` method can accomplish any of these tasks. The result is always a set of keys (i.e., `Set<Key>`).
+
+```swift
+// Find all registrations in the default container
+let keys = Guise.filter(container: Name.default)
+// Find all registrations of this type in all containers with any name
+let keys = Guise.filter(type: AccountServicing.self)
+// Find all registrations of this type in the given container
+let keys = Guise.filter(type: AccountServicing.self, container: Environment.test)
+```
+
+The `filter` method also accepts metadata queries. A metadata query is a block of type `(M) -> Bool`, where `M` is the type of the metadata as originally registered.
+
+```swift
+let keys = Guise.filter(type: Dog.self, container: Dogs.purebred) { (metadata: DogMetadata) in metadata.age < 1 }
+```
+
+To match this filter, the following must _all_ be true.
+
+1. The registered type must be `Dog`.
+2. The container must be `Dogs.purebred`.
+3. The type of metadata must be `DogMetadata`.
+4. The metadata query `metadata.age < 1` must return `true`.
+
+Since `name` is not specified, it is ignored. Note that if a registration exists matching everything above, except that a different metadata type was used, i.e., `Int` instead of `DogMetadata`, it is simply ignored and not returned in the output.
+
+The resulting `Set<Key>` can be used when unregistering, when performing multiple resolution, etc.
+
+#### Single Resolution
+
+Resolution has been discussed implicitly in many of the sections above.
+
+#### Multiple Resolution
+
+Given a sequence of keys, it is possible to resolve many dependencies at the same time.
+
+```swift
+let keys = Guise.filter(type: Dog.self, container: Container.dogs)
+let dogs = Guise.resolve(keys: dogs) as [Dog]
+// Or…
+let dogs = Guise.resolve(keys: dogs) as [Key: Dog]
+```
