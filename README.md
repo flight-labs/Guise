@@ -151,25 +151,6 @@ Guise.register(cached: true) { accountService as AccountServicing }
 
 In fact, under the hood this is exactly what Guise does.
 
-#### Registering Types
-
-It is very common to want to register a type directly and have the dependency resolver create instances. Since Swift's reflection capabilities are minimal and initializers can take many forms, Guise only supports types with an empty required initializer. These types must conform to Guise's `Init` protocol.
-
-```swift
-class Awesome: Init {
-  required init() {}
-}
-Guise.register(type: Awesome.self)
-```
-
-This is exactly equivalent to the following:
-
-```swift
-Guise.register{ Awesome() }
-```
-
-In fact, Guise simply converts the former notation into the latter.
-
 #### Containers
 
 Registrations can be differentiated by placing them in containers. A container is simply another parameter that must be passed when registering and resolving. As with names, any `Hashable` type can be used.
