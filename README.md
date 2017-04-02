@@ -149,6 +149,27 @@ let accountService = AccountService()
 Guise.register(cached: true) { accountService as AccountServicing }
 ```
 
+In fact, under the hood this is exactly what Guise does.
+
+#### Registering Types
+
+It is very common to want to register a type directly and have the dependency resolver create instances. Since Swift's reflection capabilities are minimal and initializers can take many forms, Guise only supports types with an empty required initializer. These types must conform to Guise's `Init` protocol.
+
+```swift
+class Awesome: Init {
+  required init() {}
+}
+Guise.register(type: Awesome.self)
+```
+
+This is exactly equivalent to the following:
+
+```swift
+Guise.register{ Awesome() }
+```
+
+In fact, Guise simply converts the former notation into the latter.
+
 #### Containers
 
 Registrations can be differentiated by placing them in containers. A container is simply another parameter that must be passed when registering and resolving. As with names, any `Hashable` type can be used.
@@ -252,7 +273,27 @@ The resulting `Set<Key>` can be used when unregistering, when performing multipl
 
 #### Single Resolution
 
-Resolution has been discussed implicitly in many of the sections above.
+Resolution has been discussed implicitly in many of the sections above. In order to resolve a dependency, Guise must have the following five pieces of information. All but the first are optional.
+
+1. The type to be resolved.
+2. The name of the registration. Defaults to `Name.default` if not specified.
+3. The container of the registration. Defaults to `Name.default` if not specified.
+4. The parameter to pass to the registration block. Defaults to `()` if not specified.
+5. Whether or not to use a cached value. This is of type `Bool?` and defaults to `nil` if not specified, which means that the value specified when the registration was made will be used.
+
+The return type of `resolve` is `T?`, i.e., either `resolve` returns the desired dependency or returns `nil` if no such dependency is registered. In most cases, dependencies are required for the proper functioning of an application, so forced unwrapping should be used.
+
+```swift
+// If no account service is registered, our application is simply invalid, so this should always succeed.
+// Thus, it's safe to force-unwrap the result of resolve.
+let accountService = Guise.resolve()! as AccountServicing
+```
+
+In the rare case where we need to test whether a registration exists, syntax similar to the following may be used.
+
+```swift
+guard let accountService = Guise.resolve(name: AccountService.funky) as AccountServicing? else { return }
+```
 
 #### Multiple Resolution
 
@@ -264,3 +305,22 @@ let dogs = Guise.resolve(keys: dogs) as [Dog]
 // Or…
 let dogs = Guise.resolve(keys: dogs) as [Key: Dog]
 ```
+
+If any of the keys are not present, or if they do not register the type `Dog`, then the dependency to which they correspond is simply skipped.
+
+```swift
+let keys = Guise.filter(type: Dog.self)
+let cats = Guise.resolve(keys: keys) as [Cat]
+```
+
+The `cats` array in the example above will be empty.
+
+### Thread Safety
+
+Internally, Guise keeps registrations in a `[Key: Dependency]` dictionary. `Dependency` is a private type that holds the resolution block, any cached values, related metadata, and so on. All operations on this dictionary are protected by a lock that allows one writer and multiple readers. Whenever possible, only operations specifically on this dictionary are locked. This means that resolution itself _does not_ occur inside of a lock. This is necessary both because resolution is inherently a more expensive operation than simple dictionary operations and to prevent a situation in which calling another Guise method inside of a resolution block could produce a deadlock.
+
+The only exception is that metadata filters are called inside of a read lock. For this reason, it is important to keep metadata filters simple and brief.
+
+### Dependency Injection vs Dependency resolution
+
+Dependency injection is superior to dependency resolution. Resolution creates a dependency on the resolver itself. However, it is not possible to build a dependency injection framework given the current state of the Swift language. Much, much more powerful reflection and metadata capabilities would be needed, akin to those found in languages such as C#.
