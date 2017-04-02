@@ -34,6 +34,12 @@ struct HumanMetadata {
     let coolness: Int
 }
 
+class Watusi: Init {
+    required init() {
+        
+    }
+}
+
 class GuiseTests: XCTestCase {
     
     override func tearDown() {
@@ -152,5 +158,10 @@ class GuiseTests: XCTestCase {
         let humans = Guise.resolve(keys: keys) as [Human]
         // Because we are resolving Humans, not Dogs, Brian Griffin is skipped.
         XCTAssertEqual(1, humans.count)
+    }
+    
+    func testResolutionWithInitType() {
+        let _ = Guise.register(type: Watusi.self)
+        XCTAssertNotNil(Guise.resolve() as Watusi?)
     }
 }

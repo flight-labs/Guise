@@ -106,6 +106,10 @@ public func ==(lhs: Key, rhs: Key) -> Bool {
     return true
 }
 
+public protocol Init {
+    init()
+}
+
 /**
  The type of a resolution block.
  
@@ -279,6 +283,22 @@ public struct Guise {
     */
     public static func register<T>(instance: T, metadata: Any = ()) -> Key {
         return register(key: Key(type: T.self, name: Name.default, container: Name.default), metadata: metadata, cached: true) { instance }
+    }
+    
+    public static func register<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C, metadata: Any = (), cached: Bool = false) -> Key where T: Init {
+        return register(name: name, container: container, metadata: metadata, cached: cached) { T() }
+    }
+    
+    public static func register<T, N: Hashable>(type: T.Type, name: N, metadata: Any = (), cached: Bool =  false) -> Key where T: Init {
+        return register(name: name, container: Name.default, metadata: metadata, cached: cached) { T() }
+    }
+    
+    public static func register<T, C: Hashable>(type: T.Type, container: C, metadata: Any = (), cached: Bool = false) -> Key where T: Init {
+        return register(name: Name.default, container: container, metadata: metadata, cached: cached) { T() }
+    }
+    
+    public static func register<T>(type: T.Type, metadata: Any = (), cached: Bool = false) -> Key where T: Init {
+        return register(name: Name.default, container: Name.default, metadata: metadata, cached: cached) { T() }
     }
     
     /**
