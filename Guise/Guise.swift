@@ -87,6 +87,8 @@ public protocol Keyed {
     var container: AnyHashable { get }
 }
 
+public protocol TypedKey: Keyed {}
+
 /**
  A type-erasing unique key under which to register a block in Guise.
 */
@@ -117,9 +119,13 @@ public struct AnyKey: Keyed, Hashable {
     public init<T, C: Hashable>(type: T.Type, container: C) {
         self.init(type: type, name: Name.default, container: container)
     }
+    
+    public init<T>(type: T.Type) {
+        self.init(type: type, name: Name.default, container: Name.default)
+    }
 }
 
-extension Set where Element == AnyKey {
+extension Sequence where Iterator.Element == AnyKey {
     public func typed<T>() -> Set<Key<T>> {
         return Set<Key<T>>(flatMap{ Key($0) })
     }
@@ -133,7 +139,7 @@ public func ==(lhs: AnyKey, rhs: AnyKey) -> Bool {
     return true
 }
 
-public struct Key<T>: Keyed, Hashable {
+public struct Key<T>: TypedKey, Hashable {
     public let type: String
     public let name: AnyHashable
     public let container: AnyHashable
@@ -158,7 +164,7 @@ public struct Key<T>: Keyed, Hashable {
         self.init(name: Name.default, container: Name.default)
     }
     
-    public init?(_ key: AnyKey) {
+    public init?(_ key: Keyed) {
         if key.type != String(reflecting: T.self) { return nil }
         self.type = key.type
         self.name = key.name
@@ -166,6 +172,12 @@ public struct Key<T>: Keyed, Hashable {
         self.hashValue = hash(self.type, self.name, self.container)
     }
     
+}
+
+extension Sequence where Iterator.Element: TypedKey {
+    public func untyped() -> Set<AnyKey> {
+        return Set(map{ AnyKey($0) })
+    }
 }
 
 public func ==<T>(lhs: Key<T>, rhs: Key<T>) -> Bool {
@@ -257,7 +269,12 @@ public struct Guise {
      
     */
     public static func register<P, T>(keys: Set<Key<T>>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Set<Key<T>> {
-        return Set(keys.map{ register(key: $0, metadata: metadata, cached: cached, resolution: resolution) })
+        return lock.write {
+            for key in keys {
+                registrations[AnyKey(key)] = Dependency(metadata: metadata, cached: cached, resolution: resolution)
+            }
+            return keys
+        }
     }
     
     /**
