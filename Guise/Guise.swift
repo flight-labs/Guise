@@ -921,7 +921,7 @@ public struct Guise {
     }
     
     public static func unregister<T>(key: Key<T>...) {
-        unregister(keys: key.typedKeys() as Set<Key<T>>)
+        unregister(keys: key.untypedKeys())
     }
     
     /**
