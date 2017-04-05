@@ -157,7 +157,7 @@ class GuiseTests: XCTestCase {
         let keys = Guise.filter(metafilter: metafilter)
         // We get back two keys, but they resolve disparate types.
         XCTAssertEqual(2, keys.count)
-        let humans = Guise.resolve(keys: keys.typed()) as [Human]
+        let humans = Guise.resolve(keys: keys.typedKeys()) as [Human]
         // Because we are resolving Humans, not Dogs, Brian Griffin is skipped.
         XCTAssertEqual(1, humans.count)
     }
