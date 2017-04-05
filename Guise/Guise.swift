@@ -495,7 +495,7 @@ public struct Guise {
      
      - note: If a `Key` does not map to a dependency of type `T`, it will be skipped.
     */
-    public static func resolve<T>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil) -> Dictionary<Key<T>, T> {
+    public static func resolve<T>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil) -> [Key<T>: T] {
         let dependencies: Dictionary<Key<T>, Dependency> = lock.read {
             var dependencies = Dictionary<Key<T>, Dependency>()
             for (key, dependency) in registrations {
@@ -890,11 +890,9 @@ public struct Guise {
      Retrieve metadata for the dependency registered under `key`.
     */
     public static func metadata<M>(for key: Keyed) -> M? {
-        return lock.read {
-            guard let dependency = registrations[AnyKey(key)] else { return nil }
-            guard let metadata = dependency.metadata as? M else { return nil }
-            return metadata
-        }
+        guard let dependency = lock.read({ registrations[AnyKey(key)] }) else { return nil }
+        guard let metadata = dependency.metadata as? M else { return nil }
+        return metadata
     }
     
     /**
