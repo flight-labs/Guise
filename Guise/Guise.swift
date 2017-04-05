@@ -87,8 +87,6 @@ public protocol Keyed {
     var container: AnyHashable { get }
 }
 
-public protocol TypedKey: Keyed {}
-
 /**
  A type-erasing unique key under which to register a block in Guise.
 */
@@ -125,9 +123,13 @@ public struct AnyKey: Keyed, Hashable {
     }
 }
 
-extension Sequence where Iterator.Element == AnyKey {
-    public func typed<T>() -> Set<Key<T>> {
+extension Sequence where Iterator.Element: Keyed {
+    public func typedKeys<T>() -> Set<Key<T>> {
         return Set<Key<T>>(flatMap{ Key($0) })
+    }
+    
+    public func untypedKeys() -> Set<AnyKey> {
+        return Set(map{ AnyKey($0) })
     }
 }
 
@@ -139,7 +141,7 @@ public func ==(lhs: AnyKey, rhs: AnyKey) -> Bool {
     return true
 }
 
-public struct Key<T>: TypedKey, Hashable {
+public struct Key<T>: Keyed, Hashable {
     public let type: String
     public let name: AnyHashable
     public let container: AnyHashable
@@ -172,12 +174,6 @@ public struct Key<T>: TypedKey, Hashable {
         self.hashValue = hash(self.type, self.name, self.container)
     }
     
-}
-
-extension Sequence where Iterator.Element: TypedKey {
-    public func untyped() -> Set<AnyKey> {
-        return Set(map{ AnyKey($0) })
-    }
 }
 
 public func ==<T>(lhs: Key<T>, rhs: Key<T>) -> Bool {
@@ -213,13 +209,13 @@ private typealias Metathunk = Metafilter<Any>
  */
 private class Dependency {
     /** Default lifecycle for the dependency. */
-    internal let cached: Bool
+    fileprivate let cached: Bool
     /** Registered block. */
     private let resolution: (Any) -> Any
     /** Cached instance, if any. */
     private var instance: Any?
     /** Metadata */
-    internal let metadata: Any
+    fileprivate let metadata: Any
     
     init<P, T>(metadata: Any, cached: Bool, resolution: @escaping Resolution<P, T>) {
         self.metadata = metadata
@@ -259,7 +255,7 @@ public struct Guise {
          - resolution: The block to register with Guise.
      
      - warning: If the type contained in `key` is not identical to `T`, an assertion will fail.
-     */
+    */
     public static func register<P, T>(key: Key<T>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
         lock.write { registrations[AnyKey(key)] = Dependency(metadata: metadata, cached: cached, resolution: resolution) }
         return key
@@ -620,6 +616,7 @@ public struct Guise {
     }
     
     /**
+     Find the given key.
     */
     public static  func filter<T>(key: Key<T>) -> Set<Key<T>> {
         return lock.read{ registrations[AnyKey(key)] == nil ? [] : [key] }
@@ -877,9 +874,9 @@ public struct Guise {
     /**
      Retrieve metadata for the dependency registered under `key`.
     */
-    public static func metadata<M>(for key: AnyKey) -> M? {
+    public static func metadata<M>(for key: Keyed) -> M? {
         return lock.read {
-            guard let dependency = registrations[key] else { return nil }
+            guard let dependency = registrations[AnyKey(key)] else { return nil }
             guard let metadata = dependency.metadata as? M else { return nil }
             return metadata
         }
@@ -899,12 +896,32 @@ public struct Guise {
             return metadatas
         }
     }
+
+    /**
+     Retrieve metadata for multiple keys.
+    */
+    public static func metadata<T, M>(for keys: Set<Key<T>>) -> [Key<T>: M] {
+        return lock.read {
+            var metadatas = Dictionary<Key<T>, M>()
+            for (key, dependency) in registrations {
+                guard let key = Key<T>(key) else { continue }
+                if !keys.contains(key) { continue }
+                guard let metadata = dependency.metadata as? M else { continue }
+                metadatas[key] = metadata
+            }
+            return metadatas
+        }
+    }
     
     /**
      Remove the dependencies registered under the given key(s).
     */
     public static func unregister(key: AnyKey...) {
-        unregister(keys: Set(key))
+        unregister(keys: key.untypedKeys())
+    }
+    
+    public static func unregister<T>(key: Key<T>...) {
+        unregister(keys: key.typedKeys() as Set<Key<T>>)
     }
     
     /**
@@ -912,6 +929,10 @@ public struct Guise {
     */
     public static func unregister(keys: Set<AnyKey>)  {
         lock.write { registrations = registrations.filter{ !keys.contains($0.key) }.dictionary() }
+    }
+    
+    public static func unregister<T>(keys: Set<Key<T>>) {
+        unregister(keys: keys.untypedKeys())
     }
     
     /**
