@@ -133,6 +133,21 @@ extension Sequence where Iterator.Element: Keyed {
     }
 }
 
+public typealias GuiseKey<T> = Key<T>
+
+extension Dictionary where Key: Keyed {
+    public func typedKeys<T>() -> Dictionary<GuiseKey<T>, Value> {
+        return flatMap {
+            guard let key = GuiseKey<T>($0.key) else { return nil }
+            return (key: key, value: $0.value)
+        }.dictionary()
+    }
+    
+    public func untypedKeys() -> Dictionary<AnyKey, Value> {
+        return map{ (key: AnyKey($0.key), value: $0.value) }.dictionary()
+    }
+}
+
 public func ==(lhs: AnyKey, rhs: AnyKey) -> Bool {
     if lhs.hashValue != rhs.hashValue { return false }
     if lhs.type != rhs.type { return false }
@@ -618,7 +633,7 @@ public struct Guise {
     /**
      Find the given key.
     */
-    public static  func filter<T>(key: Key<T>) -> Set<Key<T>> {
+    public static func filter<T>(key: Key<T>) -> Set<Key<T>> {
         return lock.read{ registrations[AnyKey(key)] == nil ? [] : [key] }
     }
     
