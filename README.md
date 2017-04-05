@@ -175,13 +175,13 @@ let fido = Guise.resolve(name: Name.fido, container: Container.dogs)! as Dog
 
 #### Keys
 
-Every registration produces a `Key`. This `Key` uniquely identifies the registration, and any subsequent registration that would produce the same `Key` overwrites the previous one.
+Every registration produces a `Key<T>`. This `Key<T>` uniquely identifies the registration, and any subsequent registration that would produce the same `Key` overwrites the previous one.
 
 ```swift
 let key = Guise.register{ AccountService() as AccountServicing }
 ```
 
-Each `Key` records the registration's type (which is always the return type of the resolution block `(P) -> T`), `name`, and `container`. While type must always be specified, `name` and `container` default to `Name.default` if they are not given. The following two registrations are functionally identical:
+Each `Key<T>` records the registration's type (which is always the return type of the resolution block `(P) -> T`), `name`, and `container`. While type must always be specified, `name` and `container` default to `Name.default` if they are not given. The following two registrations are functionally identical:
 
 ```swift
 let key = Guise.register{ AccountService() as AccountServicing }
@@ -191,13 +191,25 @@ let key = Guise.register(name: Name.default, container: Name.default) { AccountS
 Keys can be constructed directly, if desired.
 
 ```swift
-let key = Key(type: AccountServicing.self, name: Name.default, container: Name.default)
+let key = Key<AccountingService>name: Name.default, container: Name.default)
 ```
+
+Guise actually has two closely related key types: `Key<T>` and `AnyKey`. `AnyKey` is a type-erased version of `Key<T>`, suitable for use in heterogeneous lists and a few other contexts. Conversion between the two is straightforward:
+
+```swift
+let key = Key<AccountService>()
+let anykey = AnyKey(key)
+
+// Key<T> has a failable initializer.
+guard let key = Key<AccountService>(anyKey) else { return }
+```
+
+Sequences of `Key<T>` can be converted to `AnyKey` with the `untypedKeys` method. Sequences of `AnyKey` can be converted to `Key<T>` with the `typedKeys<T>` method. In the latter, any keys that do not contain the type `T` are simply omitted, so the number of keys returned by `typedKeys<T>` can be less than the number of the sequence upon which it is called.
 
 In most cases, keys can be ignored. However, they are used in some scenarios:
 
 - When unregistering.
-- When searching for registrations using the `filter` methods, a collection of type `Set<Key>` is returned.
+- When searching for registrations using the `filter` methods, a collection of type `Set<Key<T>>` or `Set<AnyKey>` is returned.
 - When performing multiple resolutions.
 
 Each of these scenarios will be discussed below.
@@ -214,7 +226,7 @@ Guise.register(instance: Dog(name: name), name: name, metadata: 7)
 To retrieve metadata, a `Key` must be used.
 
 ```swift
-let key = Key(type: Dog.self, name: "Fido", container: Name.default)
+let key = Key<Dog>(name: "Fido", container: Name.default)
 let metadata = Guise.metadata(for: key)! as Int
 ```
 
@@ -224,7 +236,7 @@ If there is no metadata for the `Key`, or if it is not of the specified type, `n
 
 Sometimes it is convenient to find all of the registrations matching some criteria. For instance, we might want to know all of the registrations in a certain container, or all of those registered under a certain type, or matching certain metadata, or any combination of these.
 
-The overloads of the `filter` method can accomplish any of these tasks. The result is always a set of keys (i.e., `Set<Key>`).
+The overloads of the `filter` method can accomplish any of these tasks. The result is always a set of keys (i.e., `Set<Key<T>>` or `Set<AnyKey>`).
 
 ```swift
 // Find all registrations in the default container
@@ -278,27 +290,18 @@ guard let accountService = Guise.resolve(name: AccountService.funky) as AccountS
 
 #### Multiple Resolution
 
-Given a sequence of keys, it is possible to resolve many dependencies at the same time.
+Given a `Set` of `Key<T>`, it is possible to resolve many dependencies of the same type at the same time.
 
 ```swift
-let keys = Guise.filter(type: Dog.self, container: Container.dogs)
+let keys = Guise.filter<Dog>container: Container.dogs) // Set<Key<T>>
 let dogs = Guise.resolve(keys: dogs) as [Dog]
 // Or…
-let dogs = Guise.resolve(keys: dogs) as [Key: Dog]
+let dogs = Guise.resolve(keys: dogs) as [Key<Dog>: Dog]
 ```
-
-If any of the keys are not present, or if they do not register the type `Dog`, then the dependency to which they correspond is simply skipped.
-
-```swift
-let keys = Guise.filter(type: Dog.self)
-let cats = Guise.resolve(keys: keys) as [Cat]
-```
-
-The `cats` array in the example above will be empty.
 
 ### Thread Safety
 
-Internally, Guise keeps registrations in a `[Key: Dependency]` dictionary. `Dependency` is a private type that holds the resolution block, any cached values, related metadata, and so on. All operations on this dictionary are protected by a lock that allows one writer and multiple readers. Whenever possible, only operations specifically on this dictionary are locked. This means that resolution itself _does not_ occur inside of a lock. This is necessary both because resolution is inherently a more expensive operation than simple dictionary operations and to prevent a situation in which calling another Guise method inside of a resolution block could produce a deadlock.
+Internally, Guise keeps registrations in a dictionary of type `[AnyKey: Dependency]`. `Dependency` is a private type that holds the resolution block, any cached values, related metadata, and so on. All operations on this dictionary are protected by a lock that allows one writer and multiple readers. Whenever possible, only operations specifically on this dictionary are locked. This means that resolution itself _does not_ occur inside of a lock. This is necessary both because resolution is inherently a more expensive operation than simple dictionary operations and to prevent a situation in which calling another Guise method inside of a resolution block could produce a deadlock.
 
 The only exception is that metadata filters are called inside of a read lock. For this reason, it is important to keep metadata filters simple and brief.
 
