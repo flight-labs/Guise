@@ -16,7 +16,7 @@ Guise is an elegant, flexible, type-safe dependency resolution framework for Swi
 - [x] Pass arbitrary state when resolving
 - [x] Support for arbitrary metadata
 - [x] Swift 3
-- [x] Support for iOS 9+, macOS 10.11+, watchOS 2+, tvOS 9+
+- [x] Support for iOS 8.1+, macOS 10.9+, watchOS 2+, tvOS 9+
 
 ### Changes From Version 2.0
 
