@@ -957,7 +957,7 @@ public struct Guise {
     }
     
     /**
-     Remove the dependencies registered under the given key(s).     
+     Remove the dependencies registered under the given key(s).
     */
     public static func unregister<T>(key: Key<T>...) {
         unregister(keys: key.untypedKeys())
