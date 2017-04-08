@@ -18,12 +18,12 @@ Guise is an elegant, flexible, type-safe dependency resolution framework for Swi
 - [x] Swift 3
 - [x] Support for iOS 8.1+, macOS 10.9+, watchOS 2+, tvOS 9+
 
-### Changes From Version 2.0
+### Changes From Version 4.0
 
-Guise 3.0 is not backwards-compatible with any previous version. The principle changes are these:
+Guise 5.0 is not backwards-compatible with any previous version. The principle changes are these:
 
 1. Containers have been eliminated as a separate type and are now just another `Hashable` parameter to the registration and resolution methods.
-2. Caching has been simplified back to the state of affairs that existed in version 1.0. Instead of the complex lifecycles supported by version 2.0, there is only cached and not cached.
+2. Caching has been simplified back to the state of affairs that existed in earlier versions. Instead of the complex lifecycles supported by version 4.0, there is only cached and not cached.
 3. Names and containers can now be any `Hashable` type.
 4. A set of `filter` overloads have been added which return arrays of keys. These can be used for resolving or unregistering _en masse_.
 5. Arbitrary metadata can be passed during registration. This metadata can then be queried using the `filter` methods.
