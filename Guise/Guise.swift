@@ -81,6 +81,9 @@ private class Lock {
     }
 }
 
+/**
+ The protocol shared by `Key<T>` and `AnyKey`.
+ */
 public protocol Keyed {
     var type: String { get }
     var name: AnyHashable { get }
@@ -89,6 +92,9 @@ public protocol Keyed {
 
 /**
  A type-erasing unique key under which to register a block in Guise.
+ 
+ This type is used primarily when keys must be stored heterogeneously,
+ e.g., in `Set<AnyKey>` returned from a `filter` overload.
 */
 public struct AnyKey: Keyed, Hashable {
     public let type: String
@@ -124,10 +130,23 @@ public struct AnyKey: Keyed, Hashable {
 }
 
 extension Sequence where Iterator.Element: Keyed {
+    /**
+     Returns a set up of typed `Key<T>`.
+     
+     Any of the underlying keys whose type is not `T` 
+     will simply be omitted, so this is also a way
+     to filter a sequence of keys by type.
+    */
     public func typedKeys<T>() -> Set<Key<T>> {
         return Set<Key<T>>(flatMap{ Key($0) })
     }
     
+    /**
+     Returns a set of untyped `AnyKey`.
+     
+     This is a convenient way to turn a set of typed
+     keys into a set of untyped keys.
+    */
     public func untypedKeys() -> Set<AnyKey> {
         return Set(map{ AnyKey($0) })
     }
@@ -136,6 +155,13 @@ extension Sequence where Iterator.Element: Keyed {
 public typealias GuiseKey<T> = Key<T>
 
 extension Dictionary where Key: Keyed {
+    /**
+     Returns a dictionary in which the keys hold the type `T`.
+     
+     Any key which does not hold `T` is simply skipped, along with
+     its corresponding value, so this is also a way to filter
+     a sequence of keys by type.
+    */
     public func typedKeys<T>() -> Dictionary<GuiseKey<T>, Value> {
         return flatMap {
             guard let key = GuiseKey<T>($0.key) else { return nil }
@@ -143,6 +169,12 @@ extension Dictionary where Key: Keyed {
         }.dictionary()
     }
     
+    /**
+     Returns a dictionary in which the keys are `AnyKey`.
+     
+     This is a convenient way to turn a dictionary with typed keys
+     into a dictionary with type-erased keys.
+    */
     public func untypedKeys() -> Dictionary<AnyKey, Value> {
         return map{ (key: AnyKey($0.key), value: $0.value) }.dictionary()
     }
@@ -156,6 +188,12 @@ public func ==(lhs: AnyKey, rhs: AnyKey) -> Bool {
     return true
 }
 
+/**
+ A type-safe registration key.
+ 
+ This type is used wherever type-safety is needed or
+ wherever keys are requested by type.
+ */
 public struct Key<T>: Keyed, Hashable {
     public let type: String
     public let name: AnyHashable
@@ -261,15 +299,13 @@ public struct Guise {
     /**
      Register the `resolution` block with the result type `T` and the parameter `P`.
      
-     - returns: The unique `Key` for this registration.
+     - returns: The `key` that was passed in.
      
      - parameters:
          - key: The `Key` under which to register the block.
          - metadata: Arbitrary metadata associated with this registration.
          - cached: Whether or not to cache the result of the registration block.
          - resolution: The block to register with Guise.
-     
-     - warning: If the type contained in `key` is not identical to `T`, an assertion will fail.
     */
     public static func register<P, T>(key: Key<T>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
         lock.write { registrations[AnyKey(key)] = Dependency(metadata: metadata, cached: cached, resolution: resolution) }
@@ -277,7 +313,15 @@ public struct Guise {
     }
     
     /**
+     Multiply register the `resolution` block with the result type `T` and the parameter `P`.
      
+     - returns: The passed-in `keys`.
+     
+     - parameters:
+         - key: The `Key` under which to register the block.
+         - metadata: Arbitrary metadata associated with this registration.
+         - cached: Whether or not to cache the result of the registration block.
+         - resolution: The block to register with Guise.
     */
     public static func register<P, T>(keys: Set<Key<T>>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Set<Key<T>> {
         return lock.write {
@@ -291,7 +335,7 @@ public struct Guise {
     /**
      Register the `resolution` block with the result type `T` and the parameter `P`.
      
-     - returns: The unique `Key` for this registration.
+     - returns: The unique `Key<T>` for this registration.
      
      - parameters:
         - name: The name under which to register the block.
@@ -307,7 +351,7 @@ public struct Guise {
     /**
      Register the `resolution` block with the result type `T` and the parameter `P`.
      
-     - returns: The unique `Key` for this registration.
+     - returns: The unique `Key<T>` for this registration.
      
      - parameters:
          - name: The name under which to register the block.
@@ -324,7 +368,7 @@ public struct Guise {
     /**
      Register the `resolution` block with the result type `T` and the parameter `P`.
      
-     - returns: The unique `Key` for this registration.
+     - returns: The unique `Key<T>` for this registration.
      
      - parameters:
          - container: The container in which to register the block.
@@ -341,7 +385,7 @@ public struct Guise {
     /**
      Register the `resolution` block with the result type `T` and the parameter `P`.
      
-     - returns: The unique `Key` for this registration.
+     - returns: The unique `Key<T>` for this registration.
      
      - parameters:
          - metadata: Arbitrary metadata associated with this registration.
@@ -357,7 +401,7 @@ public struct Guise {
     /**
      Register an instance.
      
-     - returns: The unique `Key` for this registration.
+     - returns: The unique `Key<T>` for this registration.
      
      - parameters:
         - instance: The instance to register.
@@ -372,7 +416,7 @@ public struct Guise {
     /**
      Register an instance.
      
-     - returns: The unique `Key` for this registration.
+     - returns: The unique `Key<T>` for this registration.
      
      - parameters:
          - instance: The instance to register.
@@ -388,7 +432,7 @@ public struct Guise {
     /**
      Register an instance.
      
-     - returns: The unique `Key` for this registration.
+     - returns: The unique `Key<T>` for this registration.
      
      - parameters:
          - instance: The instance to register.
@@ -404,7 +448,7 @@ public struct Guise {
     /**
      Register an instance.
      
-     - returns: The unique `Key` for this registration.
+     - returns: The unique `Key<T>` for this registration.
      
      - parameters:
          - instance: The instance to register.
@@ -443,20 +487,9 @@ public struct Guise {
         - keys: The keys to resolve.
         - parameter: A parameter to pass to the resolution block.
         - cached: Whether to use the cached value or to call the resolution block again.
-
-     Use the `filter` overloads to conveniently get a list of keys. For example,
-     
-     ```swift
-     // Get the keys for all plugins
-     let keys = Guise.filter(type: Plugin.self)
-     // Resolve the keys
-     let plugins: [Plugin] = Guise.resolve(keys: keys)
-     ```
      
      - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
-     
-     - note: If a `Key` does not map to a dependency of type `T`, it will be skipped.
     */
     public static func resolve<T>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil) -> [T] {
         let dependencies: [Dependency] = lock.read {
@@ -481,19 +514,8 @@ public struct Guise {
          - parameter: A parameter to pass to the resolution block.
          - cached: Whether to use the cached value or to call the resolution block again.
      
-     Use the `filter` overloads to conveniently get a list of keys. For example,
-     
-     ```swift
-     // Get the keys for all plugins
-     let keys = Guise.filter(type: Plugin.self)
-     // Resolve the keys
-     let plugins: [Plugin] = Guise.resolve(keys: keys)
-     ```
-     
-     - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
+;     - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
-     
-     - note: If a `Key` does not map to a dependency of type `T`, it will be skipped.
     */
     public static func resolve<T>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil) -> [Key<T>: T] {
         let dependencies: Dictionary<Key<T>, Dependency> = lock.read {
@@ -514,7 +536,8 @@ public struct Guise {
      - returns: The resolved dependency or `nil` if it is not found.
      
      - parameters:
-         - key: The key to resolve.
+         - name: The name under which the block was registered.
+         - container: The container in which the block was registered.
          - parameter: A parameter to pass to the resolution block.
          - cached: Whether to use the cached value or to call the block again.
      
@@ -548,7 +571,7 @@ public struct Guise {
      - returns: The resolved dependency or `nil` if it is not found.
      
      - parameters:
-         - container: The key to resolve.
+         - container: The container in which the block was registered.
          - parameter: A parameter to pass to the resolution block.
          - cached: Whether to use the cached value or to call the block again.
      
@@ -933,6 +956,9 @@ public struct Guise {
         unregister(keys: key.untypedKeys())
     }
     
+    /**
+     Remove the dependencies registered under the given key(s).     
+    */
     public static func unregister<T>(key: Key<T>...) {
         unregister(keys: key.untypedKeys())
     }
@@ -944,6 +970,9 @@ public struct Guise {
         lock.write { registrations = registrations.filter{ !keys.contains($0.key) }.dictionary() }
     }
     
+    /**
+     Remove the dependencies registered under the given keys.
+    */
     public static func unregister<T>(keys: Set<Key<T>>) {
         unregister(keys: keys.untypedKeys())
     }
