@@ -34,6 +34,14 @@ struct HumanMetadata {
     let coolness: Int
 }
 
+protocol Controlling: class {
+    
+}
+
+class Controller: Controlling {
+    
+}
+
 class GuiseTests: XCTestCase {
     
     override func tearDown() {

@@ -14,23 +14,8 @@
 		F3700B7D1DB7829400DDB218 /* Guise.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C3ED881C8D65D100FD8E4D /* Guise.swift */; };
 		F3700B7E1DB7829E00DDB218 /* Guise.h in Headers */ = {isa = PBXBuildFile; fileRef = F3C3ED711C8D64FF00FD8E4D /* Guise.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F3700B7F1DB7847000DDB218 /* GuiseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFC71C95059600BE0148 /* GuiseTests.swift */; };
-		F3700B801DB7847300DDB218 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFCA1C95067400BE0148 /* Database.swift */; };
-		F3700B811DB7847600DDB218 /* Server.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFCD1C9507DD00BE0148 /* Server.swift */; };
-		F3700B821DB7847A00DDB218 /* Data.json in Resources */ = {isa = PBXBuildFile; fileRef = F3BACFD31C9508A900BE0148 /* Data.json */; };
-		F3700B831DB7848200DDB218 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFD61C950AD500BE0148 /* Item.swift */; };
-		F3700B841DB785A300DDB218 /* Controller.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFD01C95081E00BE0148 /* Controller.swift */; };
 		F3BACFC81C95059600BE0148 /* GuiseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFC71C95059600BE0148 /* GuiseTests.swift */; };
 		F3BACFC91C95059600BE0148 /* GuiseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFC71C95059600BE0148 /* GuiseTests.swift */; };
-		F3BACFCB1C95067400BE0148 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFCA1C95067400BE0148 /* Database.swift */; };
-		F3BACFCC1C95067400BE0148 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFCA1C95067400BE0148 /* Database.swift */; };
-		F3BACFCE1C9507DD00BE0148 /* Server.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFCD1C9507DD00BE0148 /* Server.swift */; };
-		F3BACFCF1C9507DD00BE0148 /* Server.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFCD1C9507DD00BE0148 /* Server.swift */; };
-		F3BACFD11C95081E00BE0148 /* Controller.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFD01C95081E00BE0148 /* Controller.swift */; };
-		F3BACFD21C95081E00BE0148 /* Controller.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFD01C95081E00BE0148 /* Controller.swift */; };
-		F3BACFD41C9508A900BE0148 /* Data.json in Resources */ = {isa = PBXBuildFile; fileRef = F3BACFD31C9508A900BE0148 /* Data.json */; };
-		F3BACFD51C9508A900BE0148 /* Data.json in Resources */ = {isa = PBXBuildFile; fileRef = F3BACFD31C9508A900BE0148 /* Data.json */; };
-		F3BACFD71C950AD500BE0148 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFD61C950AD500BE0148 /* Item.swift */; };
-		F3BACFD81C950AD500BE0148 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3BACFD61C950AD500BE0148 /* Item.swift */; };
 		F3C3ED721C8D64FF00FD8E4D /* Guise.h in Headers */ = {isa = PBXBuildFile; fileRef = F3C3ED711C8D64FF00FD8E4D /* Guise.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		F3C3ED791C8D64FF00FD8E4D /* Guise.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F3C3ED6E1C8D64FF00FD8E4D /* Guise.framework */; };
 		F3C3ED891C8D65D100FD8E4D /* Guise.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C3ED881C8D65D100FD8E4D /* Guise.swift */; };
@@ -68,11 +53,6 @@
 		F3700B6E1DB7826900DDB218 /* GuiseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GuiseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F37B73E81C952B7B00A9AEFA /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		F3BACFC71C95059600BE0148 /* GuiseTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GuiseTests.swift; sourceTree = "<group>"; };
-		F3BACFCA1C95067400BE0148 /* Database.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
-		F3BACFCD1C9507DD00BE0148 /* Server.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Server.swift; sourceTree = "<group>"; };
-		F3BACFD01C95081E00BE0148 /* Controller.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Controller.swift; sourceTree = "<group>"; };
-		F3BACFD31C9508A900BE0148 /* Data.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = Data.json; sourceTree = "<group>"; };
-		F3BACFD61C950AD500BE0148 /* Item.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
 		F3C3ED6E1C8D64FF00FD8E4D /* Guise.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Guise.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3C3ED711C8D64FF00FD8E4D /* Guise.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Guise.h; sourceTree = "<group>"; };
 		F3C3ED731C8D64FF00FD8E4D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -178,11 +158,6 @@
 			children = (
 				F3C3ED7F1C8D64FF00FD8E4D /* Info.plist */,
 				F3BACFC71C95059600BE0148 /* GuiseTests.swift */,
-				F3BACFCA1C95067400BE0148 /* Database.swift */,
-				F3BACFCD1C9507DD00BE0148 /* Server.swift */,
-				F3BACFD01C95081E00BE0148 /* Controller.swift */,
-				F3BACFD31C9508A900BE0148 /* Data.json */,
-				F3BACFD61C950AD500BE0148 /* Item.swift */,
 			);
 			path = GuiseTests;
 			sourceTree = "<group>";
@@ -434,7 +409,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F3700B821DB7847A00DDB218 /* Data.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -449,7 +423,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F3BACFD41C9508A900BE0148 /* Data.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -464,7 +437,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F3BACFD51C9508A900BE0148 /* Data.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -491,10 +463,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F3700B841DB785A300DDB218 /* Controller.swift in Sources */,
-				F3700B831DB7848200DDB218 /* Item.swift in Sources */,
-				F3700B801DB7847300DDB218 /* Database.swift in Sources */,
-				F3700B811DB7847600DDB218 /* Server.swift in Sources */,
 				F3700B7F1DB7847000DDB218 /* GuiseTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -511,11 +479,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F3BACFD71C950AD500BE0148 /* Item.swift in Sources */,
-				F3BACFCB1C95067400BE0148 /* Database.swift in Sources */,
-				F3BACFCE1C9507DD00BE0148 /* Server.swift in Sources */,
 				F3BACFC81C95059600BE0148 /* GuiseTests.swift in Sources */,
-				F3BACFD11C95081E00BE0148 /* Controller.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -531,11 +495,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F3BACFD81C950AD500BE0148 /* Item.swift in Sources */,
-				F3BACFCC1C95067400BE0148 /* Database.swift in Sources */,
-				F3BACFCF1C9507DD00BE0148 /* Server.swift in Sources */,
 				F3BACFC91C95059600BE0148 /* GuiseTests.swift in Sources */,
-				F3BACFD21C95081E00BE0148 /* Controller.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
