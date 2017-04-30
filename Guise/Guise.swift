@@ -262,13 +262,13 @@ private typealias Metathunk = Metafilter<Any>
  */
 private class Dependency {
     /** Default lifecycle for the dependency. */
-    fileprivate let cached: Bool
+    let cached: Bool
     /** Registered block. */
     private let resolution: (Any) -> Any
     /** Cached instance, if any. */
     private var instance: Any?
     /** Metadata */
-    fileprivate let metadata: Any
+    let metadata: Any
     
     init<P, T>(metadata: Any, cached: Bool, resolution: @escaping Resolution<P, T>) {
         self.metadata = metadata
