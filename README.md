@@ -299,6 +299,25 @@ let dogs = Guise.resolve(keys: dogs) as [Dog]
 let dogs = Guise.resolve(keys: dogs) as [Key<Dog>: Dog]
 ```
 
+#### Multiple Anonymous Registration And Resolution
+
+Sometimes it's useful&mdash;such as when writing a plugin architecture&mdash;to make multiple anonymous registrations of the same type. Guise requires that these registrations be distinguished in some way. One useful technique is to use a `UUID` as the `name` of the registration, e.g.,
+
+```swift
+Guise.register(name: UUID()) { plugin1() as Plugin }
+Guise.register(name: UUID()) { plugin2() as Plugin }
+Guise.register(name: UUID()) { plugin3() as Plugin }
+```
+
+Resolution is straightforward using the techniques described above:
+
+```swift
+let pluginKeys = Guise.filter(type: Plugin.self) // returns Set<Key<Plugin>>
+let plugins = Guise.resolve(keys: pluginKeys) as [Plugin]
+```
+
+When combined with metadata and/or containers, this can be a very powerful, flexible technique indeed.
+
 ### Thread Safety
 
 Internally, Guise keeps registrations in a dictionary of type `[AnyKey: Dependency]`. `Dependency` is a private type that holds the resolution block, any cached values, related metadata, and so on. All operations on this dictionary are protected by a lock that allows one writer and multiple readers. Whenever possible, only operations specifically on this dictionary are locked. This means that resolution itself _does not_ occur inside of a lock. This is necessary both because resolution is inherently a more expensive operation than simple dictionary operations and to prevent a situation in which calling another Guise method inside of a resolution block could produce a deadlock.
