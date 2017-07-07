@@ -671,6 +671,10 @@ public struct Guise {
         return filter(key: key, metafilter: metafilter)
     }
     
+    public static func filter<T, N: Hashable, C: Hashable, M: Equatable>(type: T.Type, name: N, container: C, metadata: M) -> Set<Key<T>> {
+        return filter(type: type, name: name, container: container) { $0 == metadata }
+    }
+    
     /**
      Find all keys for the given type, name, and container.
      
@@ -688,6 +692,10 @@ public struct Guise {
     public static func filter<T, N: Hashable, M>(type: T.Type, name: N, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
         return filter(name: name, container: nil, metafilter: metathunk(metafilter))
     }
+    
+    public static func filter<T, N: Hashable, M: Equatable>(type: T.Type, name: N, metadata: M) -> Set<Key<T>> {
+        return filter(type: type, name: name) { $0 == metadata }
+    }
 
     /**
      Find all keys for the given type and name, independent of container.
@@ -703,11 +711,26 @@ public struct Guise {
         return filter(name: nil, container: container, metafilter: metathunk(metafilter))
     }
     
+    public static func filter<T, C: Hashable, M: Equatable>(type: T.Type, container: C, metadata: M) -> Set<Key<T>> {
+        return filter(type: type, container: container) { $0 == metadata }
+    }
+
+    /**
+     Find all keys for the given type and container, independent of name.
+    */    
+    public static func filter<T, C: Hashable>(type: T.Type, container: C) -> Set<Key<T>> {
+        return filter(name: nil, container: container, metafilter: nil)
+    }
+    
     /**
      Find all keys for the given name and container, independent of type.
     */
     public static func filter<N: Hashable, C: Hashable, M>(name: N, container: C, metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
         return filter(name: name, container: container, metafilter: metathunk(metafilter))
+    }
+    
+    public static func filter<N: Hashable, C: Hashable, M: Equatable>(name: N, container: C, metadata: M) -> Set<AnyKey> {
+        return filter(name: name, container: container) { $0 == metadata }
     }
 
     /**
@@ -723,6 +746,10 @@ public struct Guise {
     public static func filter<N: Hashable, M>(name: N, metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
         return filter(name: name, container: nil, metafilter: metathunk(metafilter))
     }
+    
+    public static func filter<N: Hashable, M: Equatable>(name: N, metadata: M) -> Set<AnyKey> {
+        return filter(name: name) { $0 == metadata }
+    }
 
     /**
      Find all keys for the given name, independent of the given type and container.
@@ -736,6 +763,10 @@ public struct Guise {
     */
     public static func filter<C: Hashable, M>(container: C, metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
         return filter(name: nil, container: container, metafilter: metathunk(metafilter))
+    }
+    
+    public static func filter<C: Hashable, M: Equatable>(container: C, metadata: M) -> Set<AnyKey> {
+        return filter(container: container) { $0 == metadata }
     }
 
     /**
@@ -752,6 +783,10 @@ public struct Guise {
         return filter(name: nil, container: nil, metafilter: metathunk(metafilter))
     }
     
+    public static func filter<T, M: Equatable>(type: T.Type, metadata: M) -> Set<Key<T>> {
+        return filter(type: type) { $0 == metadata }
+    }
+    
     /**
      Find all keys for the given type, independent of name and container.
      */
@@ -764,6 +799,10 @@ public struct Guise {
     */
     public static func filter<M>(metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
         return filter(name: nil, container: nil, metafilter: metathunk(metafilter))
+    }
+    
+    public static func filter<M: Equatable>(metadata: M) -> Set<AnyKey> {
+        return filter{ $0 == metadata }
     }
     
     /**
