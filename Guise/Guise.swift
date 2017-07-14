@@ -1,7 +1,7 @@
 /*
 The MIT License (MIT)
 
-Copyright (c) 2016 Gregory Higley (Prosumma)
+Copyright (c) 2016 - 2017 Gregory Higley (Prosumma)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -661,9 +661,9 @@ public struct Guise {
     }
     
     /**
-     Find all keys for the given type, name, and container.
+     Find all keys for the given type, name, and container, matching the given metadata filter.
      
-     Because all of type, name, and container are specified, this particular method will return either 
+     Because all of type, name, and container are specified, this method will return either
      an empty array or an array with a single value.
     */
     public static func filter<T, N: Hashable, C: Hashable, M>(type: T.Type, name: N, container: C, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
@@ -671,6 +671,12 @@ public struct Guise {
         return filter(key: key, metafilter: metafilter)
     }
     
+    /**
+     Find all keys for the given type, name, and container, having the specified metadata.
+     
+     Because all of type, name, and container are specified, this method will return either
+     an empty array or an array with a single value.
+    */
     public static func filter<T, N: Hashable, C: Hashable, M: Equatable>(type: T.Type, name: N, container: C, metadata: M) -> Set<Key<T>> {
         return filter(type: type, name: name, container: container) { $0 == metadata }
     }
@@ -678,7 +684,7 @@ public struct Guise {
     /**
      Find all keys for the given type, name, and container.
      
-     Because all of type, name, and container are specified, this particular method will return either
+     Because all of type, name, and container are specified, this method will return either
      an empty array or an array with a single value.
      */
     public static func filter<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> Set<Key<T>> {
@@ -687,30 +693,36 @@ public struct Guise {
     }
     
     /**
-     Find all keys for the given type and name, independent of container.
+     Find all keys for the given type and name, matching the given metadata filter.
     */
     public static func filter<T, N: Hashable, M>(type: T.Type, name: N, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
         return filter(name: name, container: nil, metafilter: metathunk(metafilter))
     }
     
+    /**
+     Find all keys for the given type and name, having the specified metadata.
+    */
     public static func filter<T, N: Hashable, M: Equatable>(type: T.Type, name: N, metadata: M) -> Set<Key<T>> {
         return filter(type: type, name: name) { $0 == metadata }
     }
 
     /**
-     Find all keys for the given type and name, independent of container.
+     Find all keys for the given type and name.
      */
     public static func filter<T, N: Hashable>(type: T.Type, name: N) -> Set<Key<T>> {
         return filter(name: name, container: nil, metafilter: nil)
     }
     
     /**
-     Find all keys for the given type and container, independent of name.
+     Find all keys for the given type and container, matching the given metadata filter.
     */
     public static func filter<T, C: Hashable, M>(type: T.Type, container: C, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
         return filter(name: nil, container: container, metafilter: metathunk(metafilter))
     }
-    
+
+    /**
+     Find all keys for the given type and container, having the specified metadata.
+    */
     public static func filter<T, C: Hashable, M: Equatable>(type: T.Type, container: C, metadata: M) -> Set<Key<T>> {
         return filter(type: type, container: container) { $0 == metadata }
     }
@@ -842,6 +854,10 @@ public struct Guise {
     public static func exists<T, N: Hashable, C: Hashable, M>(type: T.Type, name: N, container: C, metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(key: Key<T>(name: name, container: container), metafilter: metathunk(metafilter))
     }
+    
+    public static func exists<T, N: Hashable, C: Hashable, M: Equatable>(type: T.Type, name: N, container: C, metadata: M) -> Bool {
+        return exists(key: Key<T>(name: name, container: container)) { $0 == metadata }
+    }
 
     /**
      Returns true if a key with the given type, name, and container exists.
@@ -855,6 +871,10 @@ public struct Guise {
     */
     public static func exists<T, N: Hashable, M>(type: T.Type, name: N, metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(type: String(reflecting: type), name: name, container: nil, metafilter: metathunk(metafilter))
+    }
+    
+    public static func exists<T, N: Hashable, M: Equatable>(type: T.Type, name: N, metadata: M) -> Bool {
+        return exists(type: type, name: name) { $0 == metadata }
     }
 
     /**

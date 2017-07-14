@@ -7,6 +7,5 @@ _ = Guise.register(name: UUID(), container: Container.plugin, metadata: PluginTy
 _ = Guise.register(name: UUID(), container: Container.plugin, metadata: PluginType.viewer) { Plugin2() as Plugin }
 _ = Guise.register(name: UUID(), container: Container.plugin, metadata: PluginType.viewer) { Plugin3() as Plugin }
 
-var viewerKeys = Guise.filter(metadata: PluginType.viewer)
-viewerKeys.count
+var viewerKeys = Guise.filter(type: Plugin.self, metadata: PluginType.viewer)
 
