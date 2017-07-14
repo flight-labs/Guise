@@ -151,6 +151,33 @@ Guise.register(cached: true) { accountService as AccountServicing }
 
 In fact, under the hood this is exactly what Guise does.
 
+#### Weak Registrations
+
+Guise holds strong references to resolution closures, metadata, cached values, etc. Occasionally it is useful to register weak references. This is particularly common when registering `UIKit` objects. While Guise has no formal mechanism to handle weak references, here is a common pattern:
+
+```swift
+// Assume myViewController is a UIViewController subclass of type MyViewController.
+
+// Registration
+_ = Guise.register{ [weak myViewController] in myViewController }
+
+// Resolution
+if let myViewController = Guise.resolve()! as MyViewController? {
+  // Do something fun
+}
+```
+
+In the case above, the actual type registered with Guise is not `MyViewController` but `MyViewController?`, because weak references must be optionals. This means that the type returned by the `resolve` overloads is `Optional<MyViewController>?`, i.e., a double optional. The outer optional returns `nil` if there is no such registration, while the inner optional returns `nil` if the weak reference was zeroed out. Guise handles registered optionals just fine, but because of the confusion they can cause, the registration of optionals should be avoided.
+
+#### Unowned Registrations
+
+Unowned registrations can also be done, exactly analogous to weak registrations above, except that the registered type is not optional. The usual care with `unowned` must be taken.
+
+```swift
+_ = Guise.register{ [unowned myViewController] in myViewController }
+let myViewController = Guise.resolve()! as MyViewController // In this case ordinary registration should be used.
+```
+
 #### Containers
 
 Registrations can be differentiated by placing them in containers. A container is simply another parameter that must be passed when registering and resolving. As with names, any `Hashable` type can be used.

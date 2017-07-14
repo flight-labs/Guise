@@ -90,13 +90,27 @@ public protocol Keyed {
     var container: AnyHashable { get }
 }
 
+public protocol HashableKeyed: Keyed, Hashable, Equatable {
+    
+}
+
+public func ==<K: HashableKeyed>(lhs: K, rhs: K) -> Bool {
+    if lhs.hashValue != rhs.hashValue { return false }
+    if lhs.type != rhs.type { return false }
+    if lhs.name != rhs.name { return false }
+    if lhs.container != rhs.container { return false }
+    return true
+}
+
 /**
  A type-erasing unique key under which to register a block in Guise.
  
  This type is used primarily when keys must be stored heterogeneously,
  e.g., in `Set<AnyKey>` returned from a `filter` overload.
+ 
+ This is also the type that Guise uses under the hood.
 */
-public struct AnyKey: Keyed, Hashable {
+public struct AnyKey: HashableKeyed {
     public let type: String
     public let name: AnyHashable
     public let container: AnyHashable
@@ -180,21 +194,13 @@ extension Dictionary where Key: Keyed {
     }
 }
 
-public func ==(lhs: AnyKey, rhs: AnyKey) -> Bool {
-    if lhs.hashValue != rhs.hashValue { return false }
-    if lhs.type != rhs.type { return false }
-    if lhs.name != rhs.name { return false }
-    if lhs.container != rhs.container { return false }
-    return true
-}
-
 /**
  A type-safe registration key.
  
  This type is used wherever type-safety is needed or
  wherever keys are requested by type.
  */
-public struct Key<T>: Keyed, Hashable {
+public struct Key<T>: HashableKeyed {
     public let type: String
     public let name: AnyHashable
     public let container: AnyHashable
@@ -227,13 +233,6 @@ public struct Key<T>: Keyed, Hashable {
         self.hashValue = hash(self.type, self.name, self.container)
     }
     
-}
-
-public func ==<T>(lhs: Key<T>, rhs: Key<T>) -> Bool {
-    if lhs.hashValue != rhs.hashValue { return false }
-    if lhs.name != rhs.name { return false }
-    if lhs.container != rhs.container { return false }
-    return true
 }
 
 /**
@@ -341,7 +340,7 @@ public struct Guise {
         - name: The name under which to register the block.
         - container: The container in which to register the block.
         - metadata: Arbitrary metadata associated with this registration.
-        - cached: Whether or not to cache the result of the registration block.
+        - cached: Whether or not to cache the result of the registration block after first use.
         - resolution: The block to register with Guise.
     */
     public static func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
