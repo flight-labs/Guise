@@ -988,7 +988,7 @@ public struct Guise {
      Retrieve metadata for multiple keys.
      
      - parameter keys: The keys for which to retrieve the metadata.
-     - returns: A dictionary of keys and metadata.
+     - returns: A dictionary of keys to metadata.
      
      - note: If a given key does not exist, or if its metadata is not of type `M`,
      it is simply skipped. This means that the number of entries in the returned
@@ -1010,11 +1010,11 @@ public struct Guise {
      Retrieve metadata for multiple keys.
      
      - parameter keys: The keys for which to retrieve the metadata.
-     - returns: A dictionary of keys and metadata.
+     - returns: A dictionary of keys to metadata.
      
      - note: If a given key does not exist, or if its metadata is not of type `M`,
      it is simply skipped. This means that the number of entries in the returned
-     dictionary may be less than the number of keys passed to the method.     
+     dictionary may be less than the number of keys passed to the method.
     */
     public static func metadata<T, M>(for keys: Set<Key<T>>) -> [Key<T>: M] {
         return lock.read {
