@@ -1015,43 +1015,94 @@ public struct Guise {
     // MARK: Unregistration
     
     /**
-     Remove the dependencies registered under the given key(s).
-    */
-    public static func unregister(key: AnyKey...) {
-        unregister(keys: key.untypedKeys())
-    }
-    
-    /**
-     Remove the dependencies registered under the given key(s).
-    */
-    public static func unregister<T>(key: Key<T>...) {
-        unregister(keys: key.untypedKeys())
+     Remove the dependencies registered under the given keys.
+     
+     - parameter keys: The keys to remove.
+     - returns: The number of dependencies removed.
+     */
+    public static func unregister(keys: Set<AnyKey>) -> Int  {
+        return lock.write {
+            let count = registrations.count
+            registrations = registrations.filter{ !keys.contains($0.key) }.dictionary()
+            return count - registrations.count
+        }
     }
     
     /**
      Remove the dependencies registered under the given keys.
-    */
-    public static func unregister(keys: Set<AnyKey>)  {
-        lock.write { registrations = registrations.filter{ !keys.contains($0.key) }.dictionary() }
+     
+     - parameter keys: The keys to remove.
+     - returns: The number of dependencies removed.
+     */
+    public static func unregister<T>(keys: Set<Key<T>>) -> Int {
+        return unregister(keys: keys.untypedKeys())
     }
     
     /**
-     Remove the dependencies registered under the given keys.
+     Remove the dependencies registered under the given key(s).
+     
+     - parameter key: One or more keys to remove
+     - returns: The number of dependencies removed.
     */
-    public static func unregister<T>(keys: Set<Key<T>>) {
-        unregister(keys: keys.untypedKeys())
+    public static func unregister(key: AnyKey...) -> Int {
+        return unregister(keys: key.untypedKeys())
     }
     
-    public static func unregister<T>(type: T.Type) {
-        unregister(keys: Guise.filter(type: type))
+    /**
+     Remove the dependencies registered under the given key(s).
+     
+     - parameter key: One or more keys to remove
+     - returns: The number of dependencies removed.
+    */
+    public static func unregister<T>(key: Key<T>...) -> Int {
+        return unregister(keys: key.untypedKeys())
+    }
+
+    /**
+     Remove all dependencies of the given type, irrespective of name and container.
+     
+     - parameter type: The registered type of the dependencies to remove.
+     - returns: The number of dependencies removed.
+    */
+    public static func unregister<T>(type: T.Type) -> Int {
+        return unregister(keys: Guise.filter(type: type))
     }
     
-    public static func unregister<C: Hashable>(container: C) {
-        unregister(keys: Guise.filter(container: container))
+    /**
+     Remove all dependencies in the specified container.
+     
+     - parameter container: The container to empty.
+     - returns: The number of dependencies removed.
+    */
+    public static func unregister<C: Hashable>(container: C) -> Int {
+        return unregister(keys: Guise.filter(container: container))
     }
     
-    public static func unregister<T, C: Hashable>(type: T.Type, container: C) {
-        unregister(keys: Guise.filter(type: type, container: container))
+    /**
+     Remove all dependencies of the given type in the specified container.
+     
+     - parameters:
+        - type: The registered type of the dependencies to remove.
+        - container: The container in which to search for dependencies to remove.
+     - returns: The number of dependencies removed.
+    */
+    public static func unregister<T, C: Hashable>(type: T.Type, container: C) -> Int {
+        return unregister(keys: Guise.filter(type: type, container: container))
+    }
+    
+    /**
+     Remove the dependency with the specified type, name, and container.
+     
+     - parameters:
+        - type: The type of the dependency to remove.
+        - name: The name of the dependency to remove.
+        - container: The container of the dependency to remove.
+     - returns: The number of dependencies removed, which for this method will be either 0 or 1.
+     
+     - note: This can affect only one registered dependency.
+    */
+    public static func unregister<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> Int {
+        return unregister(key: Key<T>(name: name, container: container))
     }
     
     /**
@@ -1159,7 +1210,7 @@ extension Dictionary where Key: Keyed {
         return flatMap {
             guard let key = GuiseKey<T>($0.key) else { return nil }
             return (key: key, value: $0.value)
-            }.dictionary()
+        }.dictionary()
     }
     
     /**
