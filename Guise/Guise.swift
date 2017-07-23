@@ -26,13 +26,9 @@ import Foundation
 
 // MARK: -
 
-/**
- `Name.default` is used for the default name of a container or type when one is not specified.
- */
+/// `Name.default` is used for the default name of a container or type when one is not specified.
 public enum Name {
-    /**
-     `Name.default` is used for the default name of a container or type when one is not specified.
-     */
+    /// `Name.default` is used for the default name of a container or type when one is not specified.
     case `default`
 }
 
@@ -53,9 +49,7 @@ public enum Name {
  unique.
  */
 public protocol Keyed {
-    /**
-     The fully qualified name of a type produced by `String(reflecting: type)`.
-    */
+    /// The fully qualified name of a type produced by `String(reflecting: type)`.
     var type: String { get }
     /**
      The name of a registration. Defaults to `Name.default`.
@@ -70,13 +64,16 @@ public protocol Keyed {
      any purpose. One common use is to quickly _unregister_ many
      registrations at once:
      
-     ```
-     Guise.unregister(container: Container.plugins)
-     ```
+         Guise.unregister(container: Container.plugins)
     */
     var container: AnyHashable { get }
 }
 
+/**
+ Types which are all of `Keyed`, `Hashable`, and `Equatable`.
+ 
+ Both `Key` and `AnyKey` implement this protocol.
+*/
 public protocol EquatableKeyed: Keyed, Hashable, Equatable {
     
 }
@@ -97,6 +94,9 @@ public func ==<K: EquatableKeyed>(lhs: K, rhs: K) -> Bool {
  
  This is also the type that Guise uses under the hood to associate
  keys with registered dependencies.
+ 
+ - note: See the documentation of the `Keyed` protocol for a fuller
+ discussion of keys.
 */
 public struct AnyKey: EquatableKeyed {
     public let type: String
@@ -136,6 +136,9 @@ public struct AnyKey: EquatableKeyed {
  
  This type is used wherever type-safety is needed or
  wherever keys are requested by type.
+ 
+ - note: See the documentation of the `Keyed` protocol for a fuller
+ discussion of keys.
  */
 public struct Key<T>: EquatableKeyed {
     public let type: String
