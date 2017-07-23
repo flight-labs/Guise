@@ -23,3 +23,4 @@ let viewers = Guise.resolve(keys: viewerKeys) as [Plugin]
 let pluginKeys = Guise.filter(container: Container.plugin)
 Guise.unregister(keys: pluginKeys)
 Guise.filter(container: Container.plugin).count
+

@@ -592,9 +592,7 @@ public struct Guise {
         }
     }
     
-    /**
-     Most of the typed `filter` overloads end up here.
-    */
+    /// Most of the typed `filter` overloads end up here.
     private static func filter<T>(name: AnyHashable?, container: AnyHashable?, metathunk: Metathunk? = nil) -> Set<Key<T>> {
         return lock.read {
             var keys = Set<Key<T>>()
@@ -609,9 +607,7 @@ public struct Guise {
         }
     }
     
-    /**
-     Most of the untyped `filter` overloads end up here.
-    */
+    /// Most of the untyped `filter` overloads end up here.
     private static func filter(name: AnyHashable?, container: AnyHashable?, metathunk: Metathunk? = nil) -> Set<AnyKey> {
         return lock.read {
             var keys = Set<AnyKey>()
@@ -629,10 +625,31 @@ public struct Guise {
      Find the given key matching the metafilter query.
      
      This method will always return either an empty set or a set with one element.
+     
+     This method can return an empty set for one of three reasons.
+     
+     1. The `key` was not found.
+     2. The `metafilter` query failed.
+     3. The metadata was not of type `M`.
     */
     public static func filter<T, M>(key: Key<T>, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
         guard let dependency = lock.read({ registrations[AnyKey(key)] }) else { return [] }
         return metathunk(metafilter)(dependency.metadata) ? [key] : []
+    }
+    
+    /**
+     Find the given key with metadata equal to `metadata`.
+     
+     This method will always return either an empty set or a set with one element.
+     
+     This method can return an empty set for one of three reasons.
+     
+     1. The `key` was not found.
+     2. The `metadata` was not `==` to the metadata associated with `key`.
+     3. The metadata was not of type `M`.
+    */
+    public static func filter<T, M: Equatable>(key: Key<T>, metadata: M) -> Set<Key<T>> {
+        return filter(key: key) { $0 == metadata }
     }
     
     /**
@@ -1126,7 +1143,7 @@ public struct Guise {
     }
     
     /**
-     Remove all dependencies. Reset Guise completely.
+     Remove all registrations. Reset Guise completely.
     */
     public static func clear() {
         lock.write { registrations = [:] }
