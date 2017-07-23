@@ -24,6 +24,8 @@ SOFTWARE.
 
 import Foundation
 
+// MARK: -
+
 /**
  `Name.default` is used for the default name of a container or type when one is not specified.
  */
@@ -34,67 +36,52 @@ public enum Name {
     case `default`
 }
 
-/**
- Generates a hash value for one or more hashable values.
- */
-private func hash<H: Hashable>(_ hashables: H...) -> Int {
-    // djb2 hash algorithm: http://www.cse.yorku.ca/~oz/hash.html
-    // &+ operator handles Int overflow
-    return hashables.reduce(5381) { (result, hashable) in ((result << 5) &+ result) &+ hashable.hashValue }
-}
-
-infix operator ??= : AssignmentPrecedence
-
-private func ??=<T>(lhs: inout T?, rhs: @autoclosure () -> T?) {
-    if lhs != nil { return }
-    lhs = rhs()
-}
-
-/**
- A simple non-reentrant lock allowing one writer and multiple readers.
- */
-private class Lock {
-    
-    private let lock: UnsafeMutablePointer<pthread_rwlock_t> = {
-        var lock = UnsafeMutablePointer<pthread_rwlock_t>.allocate(capacity: 1)
-        let status = pthread_rwlock_init(lock, nil)
-        assert(status == 0)
-        return lock
-    }()
-    
-    private func lock<T>(_ acquire: (UnsafeMutablePointer<pthread_rwlock_t>) -> Int32, block: () -> T) -> T {
-        let _ = acquire(lock)
-        defer { pthread_rwlock_unlock(lock) }
-        return block()
-    }
-    
-    func read<T>(_ block: () -> T) -> T {
-        return lock(pthread_rwlock_rdlock, block: block)
-    }
-    
-    func write<T>(_ block: () -> T) -> T {
-        return lock(pthread_rwlock_wrlock, block: block)
-    }
-    
-    deinit {
-        pthread_rwlock_destroy(lock)
-    }
-}
+// MARK: - Keys
 
 /**
  The protocol shared by `Key<T>` and `AnyKey`.
+
+ Registration in Guise associates a unique `Keyed` with
+ a dependency. Any registration using the same `Keyed`
+ overwrites any previous registration.
+ 
+ A `Keyed` consists of a `type`, `name`, and `container`.
+ The only truly required attribute is `type`. While the
+ others cannot be `nil`, they can be defaulted to `Name.default`.
+ Any `Hashable` value can be used for `name` and `container`.
+ All three of these attributes together are what make a `Keyed`
+ unique.
  */
 public protocol Keyed {
+    /**
+     The fully qualified name of a type produced by `String(reflecting: type)`.
+    */
     var type: String { get }
+    /**
+     The name of a registration. Defaults to `Name.default`.
+     
+     Names can be used to disambiguate registrations of the same type.
+    */
     var name: AnyHashable { get }
+    /**
+     The container of a registration. Defaults to `Name.default`.
+     
+     A container may be used to group registrations together for
+     any purpose. One common use is to quickly _unregister_ many
+     registrations at once:
+     
+     ```
+     Guise.unregister(container: Container.plugins)
+     ```
+    */
     var container: AnyHashable { get }
 }
 
-public protocol HashableKeyed: Keyed, Hashable, Equatable {
+public protocol EquatableKeyed: Keyed, Hashable, Equatable {
     
 }
 
-public func ==<K: HashableKeyed>(lhs: K, rhs: K) -> Bool {
+public func ==<K: EquatableKeyed>(lhs: K, rhs: K) -> Bool {
     if lhs.hashValue != rhs.hashValue { return false }
     if lhs.type != rhs.type { return false }
     if lhs.name != rhs.name { return false }
@@ -108,9 +95,10 @@ public func ==<K: HashableKeyed>(lhs: K, rhs: K) -> Bool {
  This type is used primarily when keys must be stored heterogeneously,
  e.g., in `Set<AnyKey>` returned from a `filter` overload.
  
- This is also the type that Guise uses under the hood.
+ This is also the type that Guise uses under the hood to associate
+ keys with registered dependencies.
 */
-public struct AnyKey: HashableKeyed {
+public struct AnyKey: EquatableKeyed {
     public let type: String
     public let name: AnyHashable
     public let container: AnyHashable
@@ -143,64 +131,13 @@ public struct AnyKey: HashableKeyed {
     }
 }
 
-extension Sequence where Iterator.Element: Keyed {
-    /**
-     Returns a set up of typed `Key<T>`.
-     
-     Any of the underlying keys whose type is not `T` 
-     will simply be omitted, so this is also a way
-     to filter a sequence of keys by type.
-    */
-    public func typedKeys<T>() -> Set<Key<T>> {
-        return Set<Key<T>>(flatMap{ Key($0) })
-    }
-    
-    /**
-     Returns a set of untyped `AnyKey`.
-     
-     This is a convenient way to turn a set of typed
-     keys into a set of untyped keys.
-    */
-    public func untypedKeys() -> Set<AnyKey> {
-        return Set(map{ AnyKey($0) })
-    }
-}
-
-public typealias GuiseKey<T> = Key<T>
-
-extension Dictionary where Key: Keyed {
-    /**
-     Returns a dictionary in which the keys hold the type `T`.
-     
-     Any key which does not hold `T` is simply skipped, along with
-     its corresponding value, so this is also a way to filter
-     a sequence of keys by type.
-    */
-    public func typedKeys<T>() -> Dictionary<GuiseKey<T>, Value> {
-        return flatMap {
-            guard let key = GuiseKey<T>($0.key) else { return nil }
-            return (key: key, value: $0.value)
-        }.dictionary()
-    }
-    
-    /**
-     Returns a dictionary in which the keys are `AnyKey`.
-     
-     This is a convenient way to turn a dictionary with typed keys
-     into a dictionary with type-erased keys.
-    */
-    public func untypedKeys() -> Dictionary<AnyKey, Value> {
-        return map{ (key: AnyKey($0.key), value: $0.value) }.dictionary()
-    }
-}
-
 /**
  A type-safe registration key.
  
  This type is used wherever type-safety is needed or
  wherever keys are requested by type.
  */
-public struct Key<T>: HashableKeyed {
+public struct Key<T>: EquatableKeyed {
     public let type: String
     public let name: AnyHashable
     public let container: AnyHashable
@@ -235,29 +172,14 @@ public struct Key<T>: HashableKeyed {
     
 }
 
-/**
- The type of a resolution block.
- 
- These are what actually get registered. Guise does not register
- types or instances directly.
- */
-public typealias Resolution<P, T> = (P) -> T
-
-/**
- The type of a metadata filter.
- */
-public typealias Metafilter<M> = (M) -> Bool
-
-/**
- Used in filters.
- 
- This type exists primarily to emphasize that the `metathunk` method should be applied to
- `Metafilter<M>` before the metafilter is passed to the master `filter` or `exists` method.
- */
-private typealias Metathunk = Metafilter<Any>
+// MARK: -
 
 /**
  This class creates and holds a type-erasing thunk over a registration block.
+ 
+ Guise creates a mapping between a `Keyed` and a `Dependency`. `Keyed` holds
+ the `type`, `name`, and `container`, while `Dependency` holds the resolution
+ block, metadata, caching preference, and any cached instance.
  */
 private class Dependency {
     /** Default lifecycle for the dependency. */
@@ -289,11 +211,65 @@ private class Dependency {
     }
 }
 
+// MARK: -
+
+/**
+ The type of a resolution block.
+ 
+ These are what actually get registered. Guise does not register
+ types or instances directly.
+ */
+public typealias Resolution<P, T> = (P) -> T
+
+/**
+ The type of a metadata filter.
+ */
+public typealias Metafilter<M> = (M) -> Bool
+
+/**
+ Used in filters.
+ 
+ This type exists primarily to emphasize that the `metathunk` method should be applied to
+ `Metafilter<M>` before the metafilter is passed to the master `filter` or `exists` method.
+ */
+private typealias Metathunk = Metafilter<Any>
+
+/**
+ Guise is a simple dependency resolution framework.
+ 
+ Guise does not register types or instances directly. Instead,
+ it registers a resolution block which returns the needed dependency.
+ Guise manages a thread-safe dictionary mapping keys to resolution 
+ blocks.
+
+ The key with which each dependency is associated consists of the
+ return type of the resolution block, a `Hashable` name, and a `Hashable`
+ container. The name and container default to `Name.default`, so
+ they do not need to be specified unless required.
+ 
+ In addition, it is common to alias the return type of the resolution
+ block using a protocol to achieve abstraction.
+ 
+ This simple, flexible system can accommodate many scenarios. Some of 
+ these scenarios are so common that overloads exist to handle them
+ concisely.
+ 
+ - note: Instances of this type cannot be created. Use its static methods.
+ */
 public struct Guise {
     private init() {}
     
     private static var lock = Lock()
     private static var registrations = [AnyKey: Dependency]()
+    
+    /**
+     All keys.
+     */
+    public static var keys: Set<AnyKey> {
+        return lock.read { Set(registrations.keys) }
+    }
+    
+    // MARK: Registration
     
     /**
      Register the `resolution` block with the result type `T` and the parameter `P`.
@@ -459,6 +435,8 @@ public struct Guise {
         return register(key: Key(name: Name.default, container: Name.default), metadata: metadata, cached: true) { instance }
     }
     
+    // MARK: Resolution
+    
     /**
      Resolve a dependency registered with `key`.
      
@@ -596,6 +574,8 @@ public struct Guise {
     public static func resolve<T>(parameter: Any = (), cached: Bool? = nil) -> T? {
         return resolve(key: Key(name: Name.default, container: Name.default), parameter: parameter, cached: cached)
     }
+    
+    // MARK: Key Filtering
     
     /**
      Provides a thunk between `Metafilter<M>` and `Metafilter<Any>`.
@@ -816,6 +796,8 @@ public struct Guise {
         return filter{ $0 == metadata }
     }
     
+    // MARK: Key Presence
+    
     /**
      Helper method for filtering.
      */
@@ -988,12 +970,7 @@ public struct Guise {
         return exists{ $0 == metadata }
     }
     
-    /**
-     All keys.
-    */
-    public static var keys: Set<AnyKey> {
-        return lock.read { Set(registrations.keys) }
-    }
+    // MARK: Metadata
     
     /**
      Retrieve metadata for the dependency registered under `key`.
@@ -1035,6 +1012,8 @@ public struct Guise {
         }
     }
     
+    // MARK: Unregistration
+    
     /**
      Remove the dependencies registered under the given key(s).
     */
@@ -1063,6 +1042,18 @@ public struct Guise {
         unregister(keys: keys.untypedKeys())
     }
     
+    public static func unregister<T>(type: T.Type) {
+        unregister(keys: Guise.filter(type: type))
+    }
+    
+    public static func unregister<C: Hashable>(container: C) {
+        unregister(keys: Guise.filter(container: container))
+    }
+    
+    public static func unregister<T, C: Hashable>(type: T.Type, container: C) {
+        unregister(keys: Guise.filter(type: type, container: container))
+    }
+    
     /**
      Remove all dependencies. Reset Guise completely.
     */
@@ -1070,6 +1061,41 @@ public struct Guise {
         lock.write { registrations = [:] }
     }
 }
+
+// MARK: -
+
+/**
+ A simple non-reentrant lock allowing one writer and multiple readers.
+ */
+private class Lock {
+    
+    private let lock: UnsafeMutablePointer<pthread_rwlock_t> = {
+        var lock = UnsafeMutablePointer<pthread_rwlock_t>.allocate(capacity: 1)
+        let status = pthread_rwlock_init(lock, nil)
+        assert(status == 0)
+        return lock
+    }()
+    
+    private func lock<T>(_ acquire: (UnsafeMutablePointer<pthread_rwlock_t>) -> Int32, block: () -> T) -> T {
+        let _ = acquire(lock)
+        defer { pthread_rwlock_unlock(lock) }
+        return block()
+    }
+    
+    func read<T>(_ block: () -> T) -> T {
+        return lock(pthread_rwlock_rdlock, block: block)
+    }
+    
+    func write<T>(_ block: () -> T) -> T {
+        return lock(pthread_rwlock_wrlock, block: block)
+    }
+    
+    deinit {
+        pthread_rwlock_destroy(lock)
+    }
+}
+
+// MARK: - Extensions
 
 extension Array {
     /**
@@ -1088,3 +1114,80 @@ extension Array {
         return dictionary
     }
 }
+
+extension Sequence where Iterator.Element: Keyed {
+    /**
+     Returns a set up of typed `Key<T>`.
+     
+     Any of the underlying keys whose type is not `T`
+     will simply be omitted, so this is also a way
+     to filter a sequence of keys by type.
+     */
+    public func typedKeys<T>() -> Set<Key<T>> {
+        return Set<Key<T>>(flatMap{ Key($0) })
+    }
+    
+    /**
+     Returns a set of untyped `AnyKey`.
+     
+     This is a convenient way to turn a set of typed
+     keys into a set of untyped keys.
+     */
+    public func untypedKeys() -> Set<AnyKey> {
+        return Set(map{ AnyKey($0) })
+    }
+}
+
+/**
+ This typealias exists to disambiguate Guise's `Key<T>`
+ from the `Key` generic type parameter in `Dictionary`.
+ 
+ It is exactly equivalent to `Key<T>` and can be safely
+ ignored.
+ */
+public typealias GuiseKey<T> = Key<T>
+
+extension Dictionary where Key: Keyed {
+    /**
+     Returns a dictionary in which the keys hold the type `T`.
+     
+     Any key which does not hold `T` is simply skipped, along with
+     its corresponding value, so this is also a way to filter
+     a sequence of keys by type.
+     */
+    public func typedKeys<T>() -> Dictionary<GuiseKey<T>, Value> {
+        return flatMap {
+            guard let key = GuiseKey<T>($0.key) else { return nil }
+            return (key: key, value: $0.value)
+            }.dictionary()
+    }
+    
+    /**
+     Returns a dictionary in which the keys are `AnyKey`.
+     
+     This is a convenient way to turn a dictionary with typed keys
+     into a dictionary with type-erased keys.
+     */
+    public func untypedKeys() -> Dictionary<AnyKey, Value> {
+        return map{ (key: AnyKey($0.key), value: $0.value) }.dictionary()
+    }
+}
+
+// Miscellanea: -
+
+/**
+ Generates a hash value for one or more hashable values.
+ */
+private func hash<H: Hashable>(_ hashables: H...) -> Int {
+    // djb2 hash algorithm: http://www.cse.yorku.ca/~oz/hash.html
+    // &+ operator handles Int overflow
+    return hashables.reduce(5381) { (result, hashable) in ((result << 5) &+ result) &+ hashable.hashValue }
+}
+
+infix operator ??= : AssignmentPrecedence
+
+private func ??=<T>(lhs: inout T?, rhs: @autoclosure () -> T?) {
+    if lhs != nil { return }
+    lhs = rhs()
+}
+
