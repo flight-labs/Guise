@@ -654,6 +654,8 @@ public struct Guise {
     
     /**
      Find the given key.
+     
+     This method returns a set with either zero or one members.
     */
     public static func filter<T>(key: Key<T>) -> Set<Key<T>> {
         return lock.read{ registrations[AnyKey(key)] == nil ? [] : [key] }
