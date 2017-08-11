@@ -61,7 +61,7 @@
 		F3C3ED881C8D65D100FD8E4D /* Guise.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Guise.swift; sourceTree = "<group>"; };
 		F3C3ED8F1C8D695C00FD8E4D /* Guise.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Guise.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F3C3ED981C8D695C00FD8E4D /* GuiseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GuiseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		F3E8AE061F0EF63A00BDED69 /* Guise.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = Guise.playground; sourceTree = "<group>"; };
+		F3E8AE061F0EF63A00BDED69 /* Guise.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = Guise.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */

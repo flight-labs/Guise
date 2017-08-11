@@ -296,7 +296,7 @@ public struct Guise {
      - returns: The passed-in `keys`.
      
      - parameters:
-         - key: The `Key` under which to register the block.
+         - keys: The keys under which to register the block.
          - metadata: Arbitrary metadata associated with this registration.
          - cached: Whether or not to cache the result of the registration block.
          - resolution: The block to register with Guise.
