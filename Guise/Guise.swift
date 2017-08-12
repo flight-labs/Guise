@@ -74,7 +74,7 @@ public protocol Keyed {
  
  Both `Key` and `AnyKey` implement this protocol.
 */
-public protocol EquatableKeyed: Keyed, Hashable, Equatable {
+public protocol EquatableKeyed: Keyed, Hashable {
     
 }
 
