@@ -1167,7 +1167,7 @@ private class Lock {
     }()
     
     private func lock<T>(_ acquire: (UnsafeMutablePointer<pthread_rwlock_t>) -> Int32, block: () -> T) -> T {
-        let _ = acquire(lock)
+        _ = acquire(lock)
         defer { pthread_rwlock_unlock(lock) }
         return block()
     }

@@ -60,21 +60,21 @@ class GuiseTests: XCTestCase {
     func testFilteringAndMetadata() {
         let names = ["Huayna Capac": 7, "Huáscar": 1, "Atahualpa": 9]
         for (name, coolness) in names {
-            let _ = Guise.register(instance: Human(name: name), name: name, container: Container.people, metadata: HumanMetadata(coolness: coolness))
+            _ = Guise.register(instance: Human(name: name), name: name, container: Container.people, metadata: HumanMetadata(coolness: coolness))
         }
         XCTAssertEqual(3, Guise.filter(container: Container.people).count)
-        let _ = Guise.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
+        _ = Guise.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
         var metafilter: Metafilter<HumanMetadata> = { $0.coolness > 1 }
         // Only two humans in Container.people have HumanMetadata with coolness > 1.
         // Augustus does not have HumanMetadata. He has Int metadata, so he is simply skipped.
         XCTAssertEqual(2, Guise.filter(container: Container.people, metafilter: metafilter).count)
-        let _ = Guise.register(instance: Human(name: "Trump"), metadata: HumanMetadata(coolness: 0))
+        _ = Guise.register(instance: Human(name: "Trump"), metadata: HumanMetadata(coolness: 0))
         // This metafilter effectively queries for all registrations using HumanMetadata,
         // regardless of the value of this Metadata.
         metafilter = { _ in true }
         // We have 4 Humans matching the metafilter query. 3 in Container.people and 1 in the default container.
         XCTAssertEqual(4, Guise.filter(type: Human.self, metafilter: metafilter).count)
-        let _ = Guise.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
+        _ = Guise.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
         // After we added a dog with HumanMetadata, we query by metafilter only, ignoring type and container.
         // We have 5 matching registrations: the three Sapa Incas, Trump, and Brian Griffin.
         XCTAssertEqual(5, Guise.filter(metafilter: metafilter).count)
@@ -95,7 +95,7 @@ class GuiseTests: XCTestCase {
     
     func testMultipleRegistrations() {
         let keys: Set<Key<Animal>> = [Key(name: "Lucy"), Key(name: "Fido")]
-        let _ = Guise.register(keys: keys) { (name: String) in Dog(name: name) as Animal }
+        _ = Guise.register(keys: keys) { (name: String) in Dog(name: name) as Animal }
         var name = "Fido"
         XCTAssertNotNil(Guise.resolve(name: name, parameter: name) as Animal?)
         name = "Lucy"
@@ -103,13 +103,13 @@ class GuiseTests: XCTestCase {
     }
     
     func testResolutionWithParameter() {
-        let _ = Guise.register(container: Container.dogs) { (name: String) in Dog(name: name) }
+        _ = Guise.register(container: Container.dogs) { (name: String) in Dog(name: name) }
         let dog = Guise.resolve(container: Container.dogs, parameter: "Brutus")! as Dog
         XCTAssertEqual(dog.name, "Brutus")
     }
     
     func testCaching() {
-        let _ = Guise.register(cached: true) { Controller() as Controlling }
+        _ = Guise.register(cached: true) { Controller() as Controlling }
         let controller1 = Guise.resolve()! as Controlling
         let controller2 = Guise.resolve()! as Controlling
         // Because we asked Guise to cache this registration, we should get back the same reference every time.
@@ -125,9 +125,9 @@ class GuiseTests: XCTestCase {
     func testMultipleResolutionsWithMetafilter() {
         let names = ["Huayna Capac": 7, "Huáscar": 1, "Atahualpa": 9]
         for (name, coolness) in names {
-            let _ = Guise.register(instance: Human(name: name), name: name, container: Container.people, metadata: HumanMetadata(coolness: coolness))
+            _ = Guise.register(instance: Human(name: name), name: name, container: Container.people, metadata: HumanMetadata(coolness: coolness))
         }
-        let _ = Guise.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
+        _ = Guise.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
         let metafilter: Metafilter<HumanMetadata> = { $0.coolness > 1 }
         let keys = Guise.filter(type: Human.self, container: Container.people, metafilter: metafilter)
         let people = Guise.resolve(keys: keys) as [Human]
@@ -135,17 +135,17 @@ class GuiseTests: XCTestCase {
     }
     
     func testMultipleHeterogeneousResolutionsUsingProtocol() {
-        let _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy")
-        let _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido")
+        _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy")
+        _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido")
         let keys = Guise.filter(type: Animal.self)
         let animals = Guise.resolve(keys: keys) as [Animal]
         XCTAssertEqual(2, animals.count)
     }
     
     func testMultipleResolutionsReturningDictionary() {
-        let _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy", metadata: 3)
-        let _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido", metadata: 10)
-        let _ = Guise.register(instance: 7, metadata: 4)
+        _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy", metadata: 3)
+        _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido", metadata: 10)
+        _ = Guise.register(instance: 7, metadata: 4)
         let metafilter: Metafilter<Int> = { $0 >= 3 }
         let keys = Guise.filter(type: Animal.self, metafilter: metafilter)
         let animals = Guise.resolve(keys: keys) as [Key<Animal>: Animal]
@@ -159,8 +159,8 @@ class GuiseTests: XCTestCase {
     }
     
     func testResolutionsWithKeysOfIncorrectTypeAreSkipped() {
-        let _ = Guise.register(instance: Human(name: "Abraham Lincoln"), metadata: HumanMetadata(coolness: 9))
-        let _ = Guise.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
+        _ = Guise.register(instance: Human(name: "Abraham Lincoln"), metadata: HumanMetadata(coolness: 9))
+        _ = Guise.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
         let metafilter: Metafilter<HumanMetadata> = { $0.coolness > 5 }
         let keys = Guise.filter(metafilter: metafilter)
         // We get back two keys, but they resolve disparate types.
