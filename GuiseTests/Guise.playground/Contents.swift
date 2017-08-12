@@ -15,9 +15,11 @@ if Guise.exists(type: Zing?.self, name: Name.default, container: Name.default), 
 // Register a bunch of plugins anonymously in Container.plugin.
 _ = Guise.register(name: UUID(), container: Container.plugin, metadata: PluginType.editor) { Plugin1() as Plugin }
 _ = Guise.register(name: UUID(), container: Container.plugin, metadata: PluginType.viewer) { Plugin2() as Plugin }
-_ = Guise.register(name: UUID(), container: Container.plugin, metadata: PluginType.viewer) { Plugin3() as Plugin }
+let key = Guise.register(name: UUID(), container: Container.plugin, metadata: PluginType.viewer) { Plugin3() as Plugin }
 
-var viewerKeys = Guise.filter(type: Plugin.self, metadata: PluginType.viewer)
+Guise.metadata(for: key) as PluginType?
+
+var viewerKeys = Guise.filter(type: Plugin.self, container: Container.plugin, metadata: PluginType.viewer)
 
 let viewers = Guise.resolve(keys: viewerKeys) as [Plugin]
 
