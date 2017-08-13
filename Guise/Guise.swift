@@ -67,6 +67,9 @@ public protocol Keyed {
          Guise.unregister(container: Container.plugins)
     */
     var container: AnyHashable { get }
+    
+    init?(_ key: Keyed)
+    init?<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C)
 }
 
 /**
@@ -104,30 +107,32 @@ public struct AnyKey: EquatableKeyed {
     public let container: AnyHashable
     public let hashValue: Int
     
-    public init(_ key: Keyed) {
-        self.type = key.type
-        self.name = key.name
-        self.container = key.container
-        self.hashValue = hash(self.type, self.name, self.container)
-    }
-    
-    public init<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) {
-        self.type = String(reflecting: T.self)
+    private init(type: String, name: AnyHashable, container: AnyHashable) {
+        print("\(Swift.type(of: name.base)) \(Swift.type(of: container.base))")
+        self.type = type
         self.name = name
         self.container = container
         self.hashValue = hash(self.type, self.name, self.container)
     }
+        
+    public init?(_ key: Keyed) {
+        self.init(type: key.type, name: key.name, container: key.container)
+    }
+
+    public init?<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) {
+        self.init(type: String(reflecting: T.self), name: name, container: container)
+    }
     
     public init<T, N: Hashable>(type: T.Type, name: N) {
-        self.init(type: type, name: name, container: Name.default)
+        self.init(type: String(reflecting: T.self), name: name, container: Name.default)
     }
-    
+
     public init<T, C: Hashable>(type: T.Type, container: C) {
-        self.init(type: type, name: Name.default, container: container)
+        self.init(type: String(reflecting: T.self), name: Name.default, container: container)
     }
-    
+
     public init<T>(type: T.Type) {
-        self.init(type: type, name: Name.default, container: Name.default)
+        self.init(type: String(reflecting: T.self), name: Name.default, container: Name.default)
     }
 }
 
@@ -146,11 +151,26 @@ public struct Key<T>: EquatableKeyed {
     public let container: AnyHashable
     public let hashValue: Int
     
-    public init<N: Hashable, C: Hashable>(name: N, container: C) {
-        self.type = String(reflecting: T.self)
+    private init(type: String, name: AnyHashable, container: AnyHashable) {
+        print("\(Swift.type(of: name.base)) \(Swift.type(of: container.base))")
+        self.type = type
         self.name = name
         self.container = container
         self.hashValue = hash(self.type, self.name, self.container)
+    }
+    
+    public init?(_ key: Keyed) {
+        if key.type != String(reflecting: T.self) { return nil }
+        self.init(type: key.type, name: key.name, container: key.container)
+    }
+    
+    public init?<O, N: Hashable, C: Hashable>(type: O.Type, name: N, container: C) {
+        guard O.self == T.self else { return nil }
+        self.init(type: String(reflecting: T.self), name: name, container: container)
+    }
+    
+    public init<N: Hashable, C: Hashable>(name: N, container: C) {
+        self.init(type: String(reflecting: T.self), name: name, container: container)
     }
     
     public init<N: Hashable>(name: N) {
@@ -163,14 +183,6 @@ public struct Key<T>: EquatableKeyed {
     
     public init() {
         self.init(name: Name.default, container: Name.default)
-    }
-    
-    public init?(_ key: Keyed) {
-        if key.type != String(reflecting: T.self) { return nil }
-        self.type = key.type
-        self.name = key.name
-        self.container = key.container
-        self.hashValue = hash(self.type, self.name, self.container)
     }
     
 }
@@ -286,7 +298,7 @@ public struct Guise {
          - resolution: The block to register with Guise.
     */
     public static func register<P, T>(key: Key<T>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
-        lock.write { registrations[AnyKey(key)] = Dependency(metadata: metadata, cached: cached, resolution: resolution) }
+        lock.write { registrations[AnyKey(key)!] = Dependency(metadata: metadata, cached: cached, resolution: resolution) }
         return key
     }
     
@@ -304,7 +316,7 @@ public struct Guise {
     public static func register<P, T>(keys: Set<Key<T>>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Set<Key<T>> {
         return lock.write {
             for key in keys {
-                registrations[AnyKey(key)] = Dependency(metadata: metadata, cached: cached, resolution: resolution)
+                registrations[AnyKey(key)!] = Dependency(metadata: metadata, cached: cached, resolution: resolution)
             }
             return keys
         }
@@ -454,7 +466,7 @@ public struct Guise {
      when the dependency was registered. In most cases, this is what you want.
     */
     public static func resolve<T>(key: Key<T>, parameter: Any = (), cached: Bool? = nil) -> T? {
-        guard let dependency = lock.read({ registrations[AnyKey(key)] }) else { return nil }
+        guard let dependency = lock.read({ registrations[AnyKey(key)!] }) else { return nil }
         return dependency.resolve(parameter: parameter, cached: cached)
     }
     
@@ -592,33 +604,31 @@ public struct Guise {
         }
     }
     
-    /// Most of the typed `filter` overloads end up here.
-    private static func filter<T>(name: AnyHashable?, container: AnyHashable?, metathunk: Metathunk? = nil) -> Set<Key<T>> {
-        return lock.read {
-            var keys = Set<Key<T>>()
+    private static func filter<K: Keyed & Hashable>(type: String?, name: AnyHashable?, container: AnyHashable?, metathunk: Metathunk? = nil) -> Set<K> {
+        let filtered: [K: Dependency] = lock.read {
+            var filtered = Dictionary<K, Dependency>()
             for (key, dependency) in registrations {
-                guard let key = Key<T>(key) else { continue }
+                guard let key = K(key) else { continue }
+                if let type = type, type != key.type { continue }
                 if let name = name, name != key.name { continue }
                 if let container = container, container != key.container { continue }
-                if let metathunk = metathunk, !metathunk(dependency.metadata) { continue }
-                keys.insert(key)
+                filtered[key] = dependency
             }
-            return keys
+            return filtered
         }
+        let metathunk = metathunk ?? { _ in true }
+        return Set(filtered.filter{ metathunk($0.value.metadata) }.keys)
     }
     
+    /// Most of the typed `filter` overloads end up here.
+    private static func filter<T>(name: AnyHashable?, container: AnyHashable?, metathunk: Metathunk? = nil) -> Set<Key<T>> {
+        return filter(type: String(reflecting: T.self), name: name, container: container, metathunk: metathunk)
+    }
+
+    // TODO: Perform metafilter queries outside the lock.
     /// Most of the untyped `filter` overloads end up here.
     private static func filter(name: AnyHashable?, container: AnyHashable?, metathunk: Metathunk? = nil) -> Set<AnyKey> {
-        return lock.read {
-            var keys = Set<AnyKey>()
-            for (key, dependency) in registrations {
-                if let name = name, name != key.name { continue }
-                if let container = container, container != key.container { continue }
-                if let metathunk = metathunk, !metathunk(dependency.metadata) { continue }
-                keys.insert(key)
-            }
-            return keys
-        }
+        return filter(type: nil, name: name, container: container, metathunk: metathunk)
     }
     
     /**
@@ -633,7 +643,7 @@ public struct Guise {
      3. The metadata was not of type `M`.
     */
     public static func filter<T, M>(key: Key<T>, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
-        guard let dependency = lock.read({ registrations[AnyKey(key)] }) else { return [] }
+        guard let dependency = lock.read({ registrations[AnyKey(key)!] }) else { return [] }
         return metathunk(metafilter)(dependency.metadata) ? [key] : []
     }
     
@@ -658,7 +668,7 @@ public struct Guise {
      This method returns a set with either zero or one members.
     */
     public static func filter<T>(key: Key<T>) -> Set<Key<T>> {
-        return lock.read{ registrations[AnyKey(key)] == nil ? [] : [key] }
+        return lock.read{ registrations[AnyKey(key)!] == nil ? [] : [key] }
     }
     
     /**
@@ -823,24 +833,19 @@ public struct Guise {
     /**
      Helper method for filtering.
      */
-    private static func exists(type: String?, name: AnyHashable?, container: AnyHashable?, metathunk: Metathunk? = nil) -> Bool {
-        return lock.read {
-            for (key, dependency) in registrations {
-                if let type = type, type != key.type { continue }
-                if let name = name, name != key.name { continue }
-                if let container = container, container != key.container { continue }
-                if let methathunk = metathunk, !methathunk(dependency.metadata) { continue }
-                return true
-            }
-            return false
-        }
+    private static func exists(name: AnyHashable?, container: AnyHashable?, metathunk: Metathunk? = nil) -> Bool {
+        return (filter(type: nil, name: name, container: container, metathunk: metathunk) as Set<AnyKey>).count > 0
+    }
+    
+    private static func exists<T>(type: T.Type, name: AnyHashable?, container: AnyHashable?, metathunk: Metathunk? = nil) -> Bool {
+        return (filter(type: String(reflecting: T.self), name: name, container: container, metathunk: metathunk) as Set<Key<T>>).count > 0
     }
     
     /**
      Returns true if a registration exists for `key` and matching the `metafilter` query.
     */
     public static func exists<M>(key: Keyed, metafilter: @escaping Metafilter<M>) -> Bool {
-        guard let dependency = lock.read({ registrations[AnyKey(key)] }) else { return false }
+        guard let dependency = lock.read({ registrations[AnyKey(key)!] }) else { return false }
         return metathunk(metafilter)(dependency.metadata)
     }
     
@@ -852,7 +857,7 @@ public struct Guise {
      Returns true if a registration exists for the given key.
      */
     public static func exists(key: Keyed) -> Bool {
-        return lock.read { return registrations[AnyKey(key)] != nil }
+        return lock.read { return registrations[AnyKey(key)!] != nil }
     }
     
     /**
@@ -870,14 +875,14 @@ public struct Guise {
      Returns true if a key with the given type, name, and container exists.
      */
     public static func exists<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> Bool {
-        return exists(key: AnyKey(type: type, name: name, container: container))
+        return exists(key: AnyKey(type: type, name: name, container: container)!)
     }
     
     /**
      Returns true if any keys with the given type and name exist in any containers.
     */
     public static func exists<T, N: Hashable, M>(type: T.Type, name: N, metafilter: @escaping Metafilter<M>) -> Bool {
-        return exists(type: String(reflecting: type), name: name, container: nil, metathunk: metathunk(metafilter))
+        return exists(type: type, name: name, container: nil, metathunk: metathunk(metafilter))
     }
     
     public static func exists<T, N: Hashable, M: Equatable>(type: T.Type, name: N, metadata: M) -> Bool {
@@ -888,14 +893,14 @@ public struct Guise {
      Returns true if any keys with the given type and name exist in any containers.
      */
     public static func exists<T, N: Hashable>(type: T.Type, name: N) -> Bool {
-        return exists(type: String(reflecting: type), name: name, container: nil)
+        return exists(type: type, name: name, container: nil)
     }
     
     /**
      Returns true if any keys with the given type exist in the given container, independent of name.
     */
     public static func exists<T, C: Hashable, M>(type: T.Type, container: C, metafilter: @escaping Metafilter<M>) -> Bool {
-        return exists(type: String(reflecting: type), name: nil, container: container, metathunk: metathunk(metafilter))
+        return exists(type: type, name: nil, container: container, metathunk: metathunk(metafilter))
     }
     
     public static func exists<T, C: Hashable, M: Equatable>(type: T.Type, container: C, metadata: M) -> Bool {
@@ -906,14 +911,14 @@ public struct Guise {
      Returns true if any keys with the given type exist in the given container, independent of name.
      */
     public static func exists<T, C: Hashable>(type: T.Type, container: C) -> Bool {
-        return exists(type: String(reflecting: type), name: nil, container: container)
+        return exists(type: type, name: nil, container: container)
     }
     
     /**
      Returns true if any keys with the given name exist in the given container, independent of type.
     */
     public static func exists<N: Hashable, C: Hashable, M>(name: N, container: C, metafilter: @escaping Metafilter<M>) -> Bool {
-        return exists(type: nil, name: name, container: container, metathunk: metathunk(metafilter))
+        return exists(name: name, container: container, metathunk: metathunk(metafilter))
     }
     
     public static func exists<N: Hashable, C: Hashable, M: Equatable>(name: N, container: C, metadata: M) -> Bool {
@@ -924,14 +929,14 @@ public struct Guise {
      Returns true if any keys with the given name exist in the given container, independent of type.
      */
     public static func exists<N: Hashable, C: Hashable>(name: N, container: C) -> Bool {
-        return exists(type: nil, name: name, container: container)
+        return exists(name: name, container: container)
     }
     
     /**
      Return true if any keys with the given name exist in any container, independent of type.
     */
     public static func exists<N: Hashable, M>(name: N, metafilter: @escaping Metafilter<M>) -> Bool {
-        return exists(type: nil, name: name, container: nil, metathunk: metathunk(metafilter))
+        return exists(name: name, container: nil, metathunk: metathunk(metafilter))
     }
     
     public static func exists<N: Hashable, M: Equatable>(name: N, metadata: M) -> Bool {
@@ -942,16 +947,19 @@ public struct Guise {
      Returns true if any registrations exist under the given name.
     */
     public static func exists<N: Hashable>(name: N) -> Bool {
-        return exists(type: nil, name: name, container: nil)
+        return exists(name: name, container: nil)
     }
     
     /**
      Returns true if there are any keys registered in the given container, matching the given metafilter query.
     */
     public static func exists<C: Hashable, M>(container: C, metafilter: @escaping Metafilter<M>) -> Bool {
-        return exists(type: nil, name: nil, container: container, metathunk: metathunk(metafilter))
+        return exists(name: nil, container: container, metathunk: metathunk(metafilter))
     }
     
+    /**
+     Returns true if there are any keys registered in `container` and equal to `metadata`.
+     */
     public static func exists<C: Hashable, M: Equatable>(container: C, metadata: M) -> Bool {
         return exists(container: container) { $0 == metadata }
     }
@@ -960,14 +968,14 @@ public struct Guise {
      Returns true if there are any keys registered in the given container.
      */
     public static func exists<C: Hashable>(container: C) -> Bool {
-        return exists(type: nil, name: nil, container: container)
+        return exists(name: nil, container: container)
     }
     
     /**
      Returns true if there are any keys registered with the given type and matching the metafilter query in any container, independent of name.
     */
     public static func exists<T, M>(type: T.Type, metafilter: @escaping Metafilter<M>) -> Bool {
-        return exists(type: String(reflecting: type), name: nil, container: nil, metathunk: metathunk(metafilter))
+        return exists(type: type, name: nil, container: nil, metathunk: metathunk(metafilter))
     }
 
     public static func exists<T, M: Equatable>(type: T.Type, metadata: M) -> Bool {
@@ -978,14 +986,14 @@ public struct Guise {
      Returns true if there are any keys registered with the given type in any container, independent of name.
      */
     public static func exists<T>(type: T.Type) -> Bool {
-        return exists(type: String(reflecting: type), name: nil, container: nil)
+        return exists(type: type, name: nil, container: nil)
     }
     
     /**
      Returns true if any registrations exist matching the given metafilter, regardless of type, name, or container.
     */
     public static func exists<M>(metafilter: @escaping Metafilter<M>) -> Bool {
-        return exists(type: nil, name: nil, container: nil, metathunk: metathunk(metafilter))
+        return exists(name: nil, container: nil, metathunk: metathunk(metafilter))
     }
     
     public static func exists<M: Equatable>(metadata: M) -> Bool {
@@ -1001,7 +1009,7 @@ public struct Guise {
      - returns: The registered metadata or `nil` if it does not exist or is not of type `M`.
     */
     public static func metadata<M>(for key: Keyed) -> M? {
-        guard let dependency = lock.read({ registrations[AnyKey(key)] }) else { return nil }
+        guard let dependency = lock.read({ registrations[AnyKey(key)!] }) else { return nil }
         guard let metadata = dependency.metadata as? M else { return nil }
         return metadata
     }
@@ -1224,7 +1232,7 @@ extension Sequence where Iterator.Element: Keyed {
      keys into a set of untyped keys.
      */
     public func untypedKeys() -> Set<AnyKey> {
-        return Set(map{ AnyKey($0) })
+        return Set(map{ AnyKey($0)! })
     }
 }
 
@@ -1259,7 +1267,7 @@ extension Dictionary where Key: Keyed {
      into a dictionary with type-erased keys.
      */
     public func untypedKeys() -> Dictionary<AnyKey, Value> {
-        return map{ (key: AnyKey($0.key), value: $0.value) }.dictionary()
+        return map{ (key: AnyKey($0.key)!, value: $0.value) }.dictionary()
     }
 }
 
