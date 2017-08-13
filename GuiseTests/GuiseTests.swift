@@ -57,12 +57,16 @@ class GuiseTests: XCTestCase {
         XCTAssertNotEqual(key1, key3)
     }
     
+    func testFailableKeyInitializer() {
+        XCTAssertNil(Key<Int>(type: String.self, name: Name.default, container: Name.default))
+    }
+    
     func testFilteringAndMetadata() {
         let names = ["Huayna Capac": 7, "Huáscar": 1, "Atahualpa": 9]
         for (name, coolness) in names {
             _ = Guise.register(instance: Human(name: name), name: name, container: Container.people, metadata: HumanMetadata(coolness: coolness))
         }
-        XCTAssertEqual(3, Guise.filter(container: Container.people).count)
+        XCTAssertEqual(3, (Guise.filter(container: Container.people) as Set<AnyKey>).count)
         _ = Guise.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
         var metafilter: Metafilter<HumanMetadata> = { $0.coolness > 1 }
         // Only two humans in Container.people have HumanMetadata with coolness > 1.
@@ -77,7 +81,7 @@ class GuiseTests: XCTestCase {
         _ = Guise.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
         // After we added a dog with HumanMetadata, we query by metafilter only, ignoring type and container.
         // We have 5 matching registrations: the three Sapa Incas, Trump, and Brian Griffin.
-        XCTAssertEqual(5, Guise.filter(metafilter: metafilter).count)
+        XCTAssertEqual(5, (Guise.filter(metafilter: metafilter) as Set<AnyKey>).count)
     }
     
     func testRegistrationsWithEqualKeysOverwrite() {
@@ -87,7 +91,7 @@ class GuiseTests: XCTestCase {
         // These two keys are equal because they register the same type in the same container.
         XCTAssertEqual(fidoKey, brutusKey)
         // We should only have 1 dog in the container…
-        XCTAssertEqual(1, Guise.filter(container: Container.dogs).count)
+        XCTAssertEqual(1, (Guise.filter(container: Container.dogs) as Set<AnyKey>).count)
         // and that dog should be Brutus, not Fido. Last one wins.
         let brutus = Guise.resolve(container: Container.dogs)! as Dog
         XCTAssertEqual(brutus.name, "Brutus")
@@ -137,7 +141,7 @@ class GuiseTests: XCTestCase {
     func testMultipleHeterogeneousResolutionsUsingProtocol() {
         _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy")
         _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido")
-        let keys = Guise.filter(type: Animal.self)
+        let keys: Set<Key<Animal>> = Guise.filter(type: Animal.self)
         let animals = Guise.resolve(keys: keys) as [Animal]
         XCTAssertEqual(2, animals.count)
     }
