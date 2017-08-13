@@ -72,16 +72,7 @@ public protocol Keyed {
     init?<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C)
 }
 
-/**
- Types which are all of `Keyed`, `Hashable`, and `Equatable`.
- 
- Both `Key` and `AnyKey` implement this protocol.
-*/
-public protocol EquatableKeyed: Keyed, Hashable {
-    
-}
-
-public func ==<K: EquatableKeyed>(lhs: K, rhs: K) -> Bool {
+public func ==<K: Keyed & Hashable>(lhs: K, rhs: K) -> Bool {
     if lhs.hashValue != rhs.hashValue { return false }
     if lhs.type != rhs.type { return false }
     if lhs.name != rhs.name { return false }
@@ -101,7 +92,7 @@ public func ==<K: EquatableKeyed>(lhs: K, rhs: K) -> Bool {
  - note: See the documentation of the `Keyed` protocol for a fuller
  discussion of keys.
 */
-public struct AnyKey: EquatableKeyed {
+public struct AnyKey: Keyed, Hashable {
     public let type: String
     public let name: AnyHashable
     public let container: AnyHashable
@@ -145,7 +136,7 @@ public struct AnyKey: EquatableKeyed {
  - note: See the documentation of the `Keyed` protocol for a fuller
  discussion of keys.
  */
-public struct Key<T>: EquatableKeyed {
+public struct Key<T>: Keyed, Hashable {
     public let type: String
     public let name: AnyHashable
     public let container: AnyHashable
