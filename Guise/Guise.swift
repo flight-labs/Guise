@@ -51,12 +51,14 @@ public enum Name {
 public protocol Keyed {
     /// The fully qualified name of a type produced by `String(reflecting: type)`.
     var type: String { get }
+    
     /**
      The name of a registration. Defaults to `Name.default`.
      
      Names can be used to disambiguate registrations of the same type.
     */
     var name: AnyHashable { get }
+    
     /**
      The container of a registration. Defaults to `Name.default`.
      
@@ -1110,7 +1112,7 @@ public struct Guise {
      - returns: The number of dependencies removed.
     */
     public static func unregister<T>(type: T.Type) -> Int {
-        return unregister(keys: Guise.filter(type: type) as Set<Key<T>>)
+        return unregister(keys: Guise.filter(type: type))
     }
     
     /**
@@ -1120,7 +1122,7 @@ public struct Guise {
      - returns: The number of dependencies removed.
     */
     public static func unregister<C: Hashable>(container: C) -> Int {
-        return unregister(keys: Guise.filter(container: container) as Set<AnyKey>)
+        return unregister(keys: Guise.filter(container: container))
     }
     
     /**
