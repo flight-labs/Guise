@@ -566,7 +566,7 @@ public struct Guise {
             }
             return dependencies
         }
-        return dependencies.map{ (key: $0.key, value: $0.value.resolve(parameter: parameter, cached: cached)) }.dictionary()
+        return dependencies.mapValues{ $0.resolve(parameter: parameter, cached: cached) }
     }
     
     /**
@@ -1188,26 +1188,6 @@ private class Lock {
     
     deinit {
         pthread_rwlock_destroy(lock)
-    }
-}
-
-// MARK: - Extensions
-
-extension Array {
-    /**
-     Reconstruct a dictionary after it's been reduced to an array of key-value pairs by `filter` and the like.
-     
-     ```
-     var dictionary = [1: "ok", 2: "crazy", 99: "abnormal"]
-     dictionary = dictionary.filter{ $0.value == "ok" }.dictionary()
-     ```
-    */
-    func dictionary<K: Hashable, V>() -> [K: V] where Element == Dictionary<K, V>.Element {
-        var dictionary = [K: V]()
-        for element in self {
-            dictionary[element.key] = element.value
-        }
-        return dictionary
     }
 }
 
