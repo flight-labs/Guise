@@ -1211,64 +1211,6 @@ extension Array {
     }
 }
 
-extension Sequence where Iterator.Element: Keyed {
-    /**
-     Returns a set up of typed `Key<T>`.
-     
-     Any of the underlying keys whose type is not `T`
-     will simply be omitted, so this is also a way
-     to filter a sequence of keys by type.
-     */
-    public func typedKeys<T>() -> Set<Key<T>> {
-        return Set<Key<T>>(flatMap{ Key($0) })
-    }
-    
-    /**
-     Returns a set of untyped `AnyKey`.
-     
-     This is a convenient way to turn a set of typed
-     keys into a set of untyped keys.
-     */
-    public func untypedKeys() -> Set<AnyKey> {
-        return Set(map{ AnyKey($0)! })
-    }
-}
-
-/**
- This typealias exists to disambiguate Guise's `Key<T>`
- from the `Key` generic type parameter in `Dictionary`.
- 
- It is exactly equivalent to `Key<T>` and can be safely
- ignored.
- */
-public typealias GuiseKey<T> = Key<T>
-
-extension Dictionary where Key: Keyed {
-    /**
-     Returns a dictionary in which the keys hold the type `T`.
-     
-     Any key which does not hold `T` is simply skipped, along with
-     its corresponding value, so this is also a way to filter
-     a sequence of keys by type.
-     */
-    public func typedKeys<T>() -> Dictionary<GuiseKey<T>, Value> {
-        return flatMap {
-            guard let key = GuiseKey<T>($0.key) else { return nil }
-            return (key: key, value: $0.value)
-        }.dictionary()
-    }
-    
-    /**
-     Returns a dictionary in which the keys are `AnyKey`.
-     
-     This is a convenient way to turn a dictionary with typed keys
-     into a dictionary with type-erased keys.
-     */
-    public func untypedKeys() -> Dictionary<AnyKey, Value> {
-        return map{ (key: AnyKey($0.key)!, value: $0.value) }.dictionary()
-    }
-}
-
 // Miscellanea: -
 
 /**
