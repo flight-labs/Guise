@@ -26,9 +26,9 @@ import Foundation
 
 // MARK: -
 
-/// `Name.default` is used for the default name of a container or type when one is not specified.
+/// `Name.default` is the default for `name` and `container` when they are not specified.
 public enum Name {
-    /// `Name.default` is used for the default name of a container or type when one is not specified.
+    /// `Name.default` is the default for `name` and `container` when they are not specified.
     case `default`
 }
 
@@ -43,7 +43,7 @@ public enum Name {
  
  A `Keyed` consists of a `type`, `name`, and `container`.
  The only truly required attribute is `type`. While the
- others cannot be `nil`, they can be defaulted to `Name.default`.
+ others cannot be `nil`, they default to `Name.default`.
  Any `Hashable` value can be used for `name` and `container`.
  All three of these attributes together are what make a `Keyed`
  unique.
@@ -72,9 +72,6 @@ public protocol Keyed {
 
     /// Convert from one `Keyed` implementation to another.
     init?(_ key: Keyed)
-    
-    /// Create a `Keyed`.
-    init?<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C)
 }
 
 public func ==<K: Keyed & Hashable>(lhs: K, rhs: K) -> Bool {
@@ -125,18 +122,7 @@ public struct AnyKey: Keyed, Hashable {
         self.init(type: key.type, name: key.name, container: key.container)
     }
 
-    /**
-     Create an `AnyKey` from the given parameters.
-     
-     This initializer is failable due to conformance with `Keyed`.
-     However, in the case of `AnyKey` it will never fail. When
-     using this initializer it is safe to force-unwrap the result, e.g.,
-     
-     ```
-     let key = AnyKey(type: String.self, name: Name.default, container: Name.default)!
-     ```
-    */
-    public init?<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) {
+    public init<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) {
         self.init(type: String(reflecting: T.self), name: name, container: container)
     }
     
@@ -195,25 +181,6 @@ public struct Key<T>: Keyed, Hashable {
     public init?(_ key: Keyed) {
         if key.type != String(reflecting: T.self) { return nil }
         self.init(type: key.type, name: key.name, container: key.container)
-    }
-    
-    /**
-     Create a `Key<T>` from a `Keyed`.
-     
-     If the type of `O` is not exactly the same as the type `T`, this
-     initializer will fail.
-     
-     ```
-     let key = Key<Int>(type: String.self, name: Name.default, container: Name.default)
-     ```
-     
-     Because `String` and `Int` are not the same type, this initializer will fail.
-     
-     - note: Required by the `Keyed` protocol.
-    */
-    public init?<O, N: Hashable, C: Hashable>(type: O.Type, name: N, container: C) {
-        guard O.self == T.self else { return nil }
-        self.init(type: String(reflecting: T.self), name: name, container: container)
     }
     
     public init<N: Hashable, C: Hashable>(name: N, container: C) {
@@ -914,7 +881,7 @@ public struct Guise {
      Returns true if a key with the given type, name, and container exists.
      */
     public static func exists<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> Bool {
-        return exists(key: AnyKey(type: type, name: name, container: container)!)
+        return exists(key: AnyKey(type: type, name: name, container: container))
     }
     
     /**
@@ -1193,9 +1160,7 @@ private class Lock {
 
 // Miscellanea: -
 
-/**
- Generates a hash value for one or more hashable values.
- */
+/// Generates a hash value for one or more hashable values.
 private func hash<H: Hashable>(_ hashables: H...) -> Int {
     // djb2 hash algorithm: http://www.cse.yorku.ca/~oz/hash.html
     // &+ operator handles Int overflow
