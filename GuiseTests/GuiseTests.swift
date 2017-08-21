@@ -57,10 +57,6 @@ class GuiseTests: XCTestCase {
         XCTAssertNotEqual(key1, key3)
     }
     
-    func testFailableKeyInitializer() {
-        XCTAssertNil(Key<Int>(type: String.self, name: Name.default, container: Name.default))
-    }
-    
     func testFilteringAndMetadata() {
         let names = ["Huayna Capac": 7, "Huáscar": 1, "Atahualpa": 9]
         for (name, coolness) in names {
@@ -169,7 +165,7 @@ class GuiseTests: XCTestCase {
         let keys = Guise.filter(metafilter: metafilter)
         // We get back two keys, but they resolve disparate types.
         XCTAssertEqual(2, keys.count)
-        let humans = Guise.resolve(keys: keys.typedKeys()) as [Human]
+        let humans = Guise.resolve(keys: Set(keys.flatMap{ Key<Human>($0) })) as [Human]
         // Because we are resolving Humans, not Dogs, Brian Griffin is skipped.
         XCTAssertEqual(1, humans.count)
     }
