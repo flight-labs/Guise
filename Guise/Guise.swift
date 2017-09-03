@@ -301,12 +301,12 @@ public struct Guise {
     // MARK: Registration
     
     /**
-     Register the `resolution` block with the result type `T` and the parameter `P`.
+     Register the `resolution` block.
      
      - returns: The `key` that was passed in.
      
      - parameters:
-         - key: The `Key` under which to register the block.
+         - key: The `Key<T>` under which to register the block.
          - metadata: Arbitrary metadata associated with this registration.
          - cached: Whether or not to cache the result of the registration block.
          - resolution: The block to register with Guise.
@@ -317,7 +317,7 @@ public struct Guise {
     }
     
     /**
-     Multiply register the `resolution` block with the result type `T` and the parameter `P`.
+     Multiply register the `resolution` block.
      
      - returns: The passed-in `keys`.
      
@@ -337,7 +337,7 @@ public struct Guise {
     }
     
     /**
-     Register the `resolution` block with the result type `T` and the parameter `P`.
+     Register the `resolution` block.
      
      - returns: The unique `Key<T>` for this registration.
      
@@ -370,7 +370,7 @@ public struct Guise {
     }
     
     /**
-     Register the `resolution` block with the result type `T` and the parameter `P`.
+     Register the `resolution` block.
      
      - returns: The unique `Key<T>` for this registration.
      
@@ -387,7 +387,7 @@ public struct Guise {
     }
     
     /**
-     Register the `resolution` block with the result type `T` and the parameter `P`.
+     Register the `resolution` block.
      
      - returns: The unique `Key<T>` for this registration.
      
@@ -459,7 +459,7 @@ public struct Guise {
          - metadata: Arbitrary metadata associated with this registration.
      
      - note: The registration is made with the default name, `Name.default`, and in the default container, `Name.default`.
-     */
+    */
     public static func register<T>(instance: T, metadata: Any = ()) -> Key<T> {
         return register(key: Key(name: Name.default, container: Name.default), metadata: metadata, cached: true) { instance }
     }
@@ -467,7 +467,7 @@ public struct Guise {
     // MARK: Resolution
     
     /**
-     Resolve a dependency registered with `key`.
+     Resolve a dependency.
      
      - returns: The resolved dependency or `nil` if it is not found.
      
@@ -493,6 +493,8 @@ public struct Guise {
         - keys: The keys to resolve.
         - parameter: A parameter to pass to the resolution block.
         - cached: Whether to use the cached value or to call the resolution block again.
+     
+     - note: The dependencies to resolve must all be of the same type, but `container` and `name` can be any value.
      
      - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
@@ -520,6 +522,8 @@ public struct Guise {
          - parameter: A parameter to pass to the resolution block.
          - cached: Whether to use the cached value or to call the resolution block again.
      
+      - note: The dependencies to resolve must all be of the same type, but `container` and `name` can be any value.
+     
 ;     - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
@@ -537,7 +541,7 @@ public struct Guise {
     }
     
     /**
-     Resolve a dependency registered with the given key.
+     Resolve a dependency.
      
      - returns: The resolved dependency or `nil` if it is not found.
      
@@ -547,7 +551,7 @@ public struct Guise {
          - parameter: A parameter to pass to the resolution block.
          - cached: Whether to use the cached value or to call the block again.
      
-     Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
+     - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
     public static func resolve<T, N: Hashable, C: Hashable>(name: N, container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
@@ -555,7 +559,7 @@ public struct Guise {
     }
     
     /**
-     Resolve a dependency registered with the given type `T` and `name`.
+     Resolve a dependency.
      
      - returns: The resolved dependency or `nil` if it is not found.
      
@@ -564,7 +568,9 @@ public struct Guise {
          - parameter: A parameter to pass to the resolution block.
          - cached: Whether to use the cached value or to call the block again.
      
-     Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
+     - note: The dependency is resolved in the default container, `Name.default`.
+     
+     - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
     public static func resolve<T, N: Hashable>(name: N, parameter: Any = (), cached: Bool? = nil) -> T? {
@@ -572,7 +578,7 @@ public struct Guise {
     }
 
     /**
-     Resolve a dependency registered with the given type `T` in the given `container`.
+     Resolve a dependency.
      
      - returns: The resolved dependency or `nil` if it is not found.
      
@@ -581,7 +587,9 @@ public struct Guise {
          - parameter: A parameter to pass to the resolution block.
          - cached: Whether to use the cached value or to call the block again.
      
-     Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
+     - note: The dependency is resolved with the default name, `Name.default`.
+     
+     - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
     public static func resolve<T, C: Hashable>(container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
@@ -589,7 +597,7 @@ public struct Guise {
     }
 
     /**
-     Resolve a registered dependency.
+     Resolve a dependency.
      
      - returns: The resolved dependency or `nil` if it is not found.
      
@@ -597,7 +605,10 @@ public struct Guise {
          - parameter: A parameter to pass to the resolution block.
          - cached: Whether to use the cached value or to call the block again.
      
-     Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
+     - note: The dependency is resolved in the default container (`Name.default`) with the default name
+     (`Name.default`).
+     
+     - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
     public static func resolve<T>(parameter: Any = (), cached: Bool? = nil) -> T? {
@@ -618,12 +629,16 @@ public struct Guise {
         }
     }
     
-    // The root filter method. All filters and existence checks ultimately end up here.
+    /// The root filter method. All filters and existence checks ultimately end up here.
     private static func filter<K: Keyed & Hashable>(type: String?, name: AnyHashable?, container: AnyHashable?, metathunk: Metathunk? = nil) -> Set<K> {
         // Key matching is performed inside the lock (of course).
         let filtered: [K: Dependency] = lock.read {
             var filtered = Dictionary<K, Dependency>()
             for (key, dependency) in registrations {
+                /*
+                 Even if `type` is nil, `K` can still filter
+                 by type if it is `Key<T>.
+                 */
                 guard let key = K(key) else { continue }
                 if let type = type, type != key.type { continue }
                 if let name = name, name != key.name { continue }
@@ -662,7 +677,7 @@ public struct Guise {
      
      1. The `key` was not found.
      2. The `metadata` was not `==` to the metadata associated with `key`.
-     3. The metadata was not of type `M`.
+     3. The metadata was not of type `M`.q
     */
     public static func filter<K: Keyed & Hashable, M: Equatable>(key: K, metadata: M) -> Set<K> {
         return filter(key: key) { $0 == metadata }
@@ -798,15 +813,17 @@ public struct Guise {
         return filter(container: container) { $0 == metadata }
     }
 
-    /**
-     Find all keys for the given container, independent of type and name.
-     */
+    /// Find all keys in `container`.
     public static func filter<C: Hashable>(container: C) -> Set<AnyKey> {
         return filter(type: nil, name: nil, container: container)
     }
-    
+
     /**
-     Find all keys for the given type, independent of name and container.
+     Filter for keys holding type `T`.
+     
+     - parameters:
+         - type: The type to find
+         - metafilter: The metadata query which must return true
     */
     public static func filter<T, M>(type: T.Type, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
         return filter(type: nil, name: nil, container: nil, metathunk: metathunk(metafilter))
@@ -815,10 +832,8 @@ public struct Guise {
     public static func filter<T, M: Equatable>(type: T.Type, metadata: M) -> Set<Key<T>> {
         return filter(type: type) { $0 == metadata }
     }
-    
-    /**
-     Find all keys for the given type, independent of name and container.
-     */
+
+    /// Filter for keys holding type `T`.
     public static func filter<T>(type: T.Type) -> Set<Key<T>> {
         return filter(type: nil, name: nil, container: nil)
     }
@@ -1015,7 +1030,8 @@ public struct Guise {
      - returns: The registered metadata or `nil` if it does not exist or is not of type `M`.
     */
     public static func metadata<M>(for key: Keyed) -> M? {
-        guard let dependency = lock.read({ registrations[AnyKey(key)!] }) else { return nil }
+        let key = AnyKey(key)!
+        guard let dependency = lock.read({ registrations[key] }) else { return nil }
         guard let metadata = dependency.metadata as? M else { return nil }
         return metadata
     }
@@ -1161,7 +1177,7 @@ private class Lock {
 // Miscellanea: -
 
 /// Generates a hash value for one or more hashable values.
-private func hash<H: Hashable>(_ hashables: H...) -> Int {
+public func hash<H: Hashable>(_ hashables: H...) -> Int {
     // djb2 hash algorithm: http://www.cse.yorku.ca/~oz/hash.html
     // &+ operator handles Int overflow
     return hashables.reduce(5381) { (result, hashable) in ((result << 5) &+ result) &+ hashable.hashValue }
