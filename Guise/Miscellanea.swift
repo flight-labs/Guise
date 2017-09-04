@@ -8,6 +8,10 @@
 
 import Foundation
 
+public protocol Init {
+    init()
+}
+
 /// Generates a hash value for one or more hashable values.
 func hash<H: Hashable>(_ hashables: H...) -> Int {
     // djb2 hash algorithm: http://www.cse.yorku.ca/~oz/hash.html

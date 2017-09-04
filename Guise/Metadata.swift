@@ -36,7 +36,7 @@ extension Guise {
         return dependency.metadata
     }
     
-    public static func metadata<K: Keyed, M>(for key: K) -> M? {
+    public static func metadata<K: Keyed, M>(for key: K, type: M.Type = M.self) -> M? {
         let key = AnyKey(key)!
         guard let dependency = lock.read({ registrations[key] }) else { return nil }
         return dependency.metadata as? M

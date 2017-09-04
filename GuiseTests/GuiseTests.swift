@@ -30,16 +30,22 @@ struct Dog: Animal {
     let name: String
 }
 
-struct HumanMetadata {
+struct HumanMetadata: Equatable {
     let coolness: Int
+}
+
+func ==(lhs: HumanMetadata, rhs: HumanMetadata) -> Bool {
+    return lhs.coolness == rhs.coolness
 }
 
 protocol Controlling: class {
     
 }
 
-class Controller: Controlling {
-    
+class Controller: Controlling, Init {
+    required init() {
+        
+    }
 }
 
 class GuiseTests: XCTestCase {
@@ -168,5 +174,14 @@ class GuiseTests: XCTestCase {
         let humans = Guise.resolve(keys: Set(keys.flatMap{ Key<Human>($0) })) as [Human]
         // Because we are resolving Humans, not Dogs, Brian Griffin is skipped.
         XCTAssertEqual(1, humans.count)
+    }
+    
+    func testRetrieveMetadataByType() {
+        let key = Guise.register(instance: Human(name: "Ruijie Li"), metadata: HumanMetadata(coolness: 99))
+        XCTAssertNotNil(Guise.metadata(for: key, type: HumanMetadata.self))
+    }
+    
+    func testTypeRegistrationAndResolution() {
+        
     }
 }

@@ -62,4 +62,22 @@ extension Guise {
         return register(key: Key(name: Name.default, container: Container.default), metadata: metadata, cached: true) { instance }
     }
     
+    // MARK: Type Registration By Name And/Or Container
+    
+    public static func register<T: Init, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C, metadata: Any = (), cached: Bool = false) -> Key<T> {
+        return register(key: Key<T>(name: name, container: container), metadata: metadata, cached: cached, resolution: type.init)
+    }
+    
+    public static func register<T: Init, N: Hashable>(type: T.Type, name: N, metadata: Any = (), cached: Bool = false) -> Key<T> {
+        return register(key: Key<T>(name: name), metadata: metadata, cached: cached, resolution: type.init)
+    }
+    
+    public static func register<T: Init, C: Hashable>(type: T.Type, container: C, metadata: Any = (), cached: Bool = false) -> Key<T> {
+        return register(key: Key<T>(container: container), metadata: metadata, cached: cached, resolution: type.init)
+    }
+    
+    public static func register<T: Init>(type: T.Type, metadata: Any = (), cached: Bool = false) -> Key<T> {
+        return register(key: Key<T>(), metadata: metadata, cached: cached, resolution: type.init)
+    }
+    
 }
