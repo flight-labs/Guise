@@ -50,9 +50,9 @@ class GuiseTests: XCTestCase {
     }
     
     func testKeyEquality() {
-        let key1 = Key<Int>(name: "three", container: Name.default)
-        let key2 = Key<Int>(name: "three", container: Name.default)
-        let key3 = Key<Int>(name: Name.default, container: Name.default)
+        let key1 = Key<Int>(name: "three", container: Guise.Container.default)
+        let key2 = Key<Int>(name: "three", container: Guise.Container.default)
+        let key3 = Key<Int>(name: Guise.Name.default, container: Guise.Container.default)
         XCTAssertEqual(key1, key2)
         XCTAssertNotEqual(key1, key3)
     }

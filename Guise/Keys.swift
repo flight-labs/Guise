@@ -45,15 +45,15 @@ public struct AnyKey: Keyed, Hashable {
     }
     
     public init<T, N: Hashable>(type: T.Type, name: N) {
-        self.init(type: String(reflecting: T.self), name: name, container: Name.default)
+        self.init(type: String(reflecting: T.self), name: name, container: Guise.Container.default)
     }
     
     public init<T, C: Hashable>(type: T.Type, container: C) {
-        self.init(type: String(reflecting: T.self), name: Name.default, container: container)
+        self.init(type: String(reflecting: T.self), name: Guise.Name.default, container: container)
     }
     
     public init<T>(type: T.Type) {
-        self.init(type: String(reflecting: T.self), name: Name.default, container: Name.default)
+        self.init(type: String(reflecting: T.self), name: Guise.Name.default, container: Guise.Container.default)
     }
 }
 
@@ -84,14 +84,14 @@ public struct Key<T>: Keyed, Hashable {
     }
     
     public init<N: Hashable>(name: N) {
-        self.init(name: name, container: Name.default)
+        self.init(name: name, container: Guise.Container.default)
     }
     
     public init<C: Hashable>(container: C) {
-        self.init(name: Name.default, container: container)
+        self.init(name: Guise.Name.default, container: container)
     }
     
     public init() {
-        self.init(name: Name.default, container: Name.default)
+        self.init(name: Guise.Name.default, container: Guise.Container.default)
     }
 }

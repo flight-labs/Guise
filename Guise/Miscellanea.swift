@@ -8,10 +8,6 @@
 
 import Foundation
 
-public enum Name {
-    case `default`
-}
-
 /**
  Used in filters and resolution.
  

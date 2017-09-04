@@ -9,6 +9,14 @@
 import Foundation
 
 public struct Guise {
+    public enum Name {
+        case `default`
+    }
+    
+    public enum Container {
+        case `default`
+    }
+    
     private init() {}
     
     static var lock = Lock()

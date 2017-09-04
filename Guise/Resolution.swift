@@ -50,16 +50,16 @@ extension Guise {
         return resolve(keys: keys, parameter: parameter, cached: cached) { $0 == metadata }
     }
     
-    public static func resolve<T>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil) -> AnySequence<T> {
-        return AnySequence(resolve(keys: keys, parameter: parameter, cached: cached, metathunk: nil).values)
+    public static func resolve<T>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil) -> [T] {
+        return Array(resolve(keys: keys, parameter: parameter, cached: cached, metathunk: nil).values)
     }
 
-    public static func resolve<T, M>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil, metafilter: @escaping Metafilter<M>) -> AnySequence<T> {
-        return AnySequence(resolve(keys: keys, parameter: parameter, cached: cached, metathunk: metathunk(metafilter)).values)
+    public static func resolve<T, M>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil, metafilter: @escaping Metafilter<M>) -> [T] {
+        return Array(resolve(keys: keys, parameter: parameter, cached: cached, metathunk: metathunk(metafilter)).values)
     }
     
-    public static func resolve<T, M: Equatable>(keys: Set<Key<T>>, metadata: M, parameter: Any = (), cached: Bool? = nil) -> AnySequence<T> {
-        return AnySequence(resolve(keys: keys, parameter: parameter, cached: cached) { $0 == metadata })
+    public static func resolve<T, M: Equatable>(keys: Set<Key<T>>, metadata: M, parameter: Any = (), cached: Bool? = nil) -> [T] {
+        return Array(resolve(keys: keys, parameter: parameter, cached: cached) { $0 == metadata })
     }
 }
 
@@ -117,17 +117,17 @@ extension Guise {
     
     // MARK: Resolve By Type
     
-    public static func resolve<T>(type: T.Type = T.self, parameter: Any = (), cached: Bool? = false) -> T? {
+    public static func resolve<T>(type: T.Type = T.self, parameter: Any = (), cached: Bool? = nil) -> T? {
         let key = Key<T>()
         return resolve(keys: [key], parameter: parameter, cached: cached, metathunk: nil).values.first
     }
     
-    public static func resolve<T, M>(type: T.Type = T.self, parameter: Any = (), cached: Bool? = false, metafilter: @escaping Metafilter<M>) -> T? {
+    public static func resolve<T, M>(type: T.Type = T.self, parameter: Any = (), cached: Bool? = nil, metafilter: @escaping Metafilter<M>) -> T? {
         let key = Key<T>()
         return resolve(keys: [key], parameter: parameter, cached: cached, metathunk: metathunk(metafilter)).values.first
     }
     
-    public static func resolve<T, M: Equatable>(type: T.Type = T.self, metadata: M, parameter: Any = (), cached: Bool? = false) -> T? {
+    public static func resolve<T, M: Equatable>(type: T.Type = T.self, metadata: M, parameter: Any = (), cached: Bool? = nil) -> T? {
         return resolve(parameter: parameter, cached: cached) { $0 == metadata }
     }
 

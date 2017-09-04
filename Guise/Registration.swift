@@ -76,7 +76,7 @@ extension Guise {
      - note: The registration is made in the default container, `Name.default`.
      */
     public static func register<P, T, N: Hashable>(name: N, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
-        return register(key: Key(name: name, container: Name.default), metadata: metadata, cached: cached, resolution: resolution)
+        return register(key: Key(name: name, container: Container.default), metadata: metadata, cached: cached, resolution: resolution)
     }
     
     /**
@@ -109,7 +109,7 @@ extension Guise {
      - note: The registration is made in the default container, `Name.default` and under the default name, `Name.default`.
      */
     public static func register<P, T>(metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
-        return register(key: Key(name: Name.default, container: Name.default), metadata: metadata, cached: cached, resolution: resolution)
+        return register(key: Key(name: Name.default, container: Container.default), metadata: metadata, cached: cached, resolution: resolution)
     }
     
     /**
@@ -140,7 +140,7 @@ extension Guise {
      - note: The registration is made in the default container, `Name.default`.
      */
     public static func register<T, N: Hashable>(instance: T, name: N, metadata: Any = ()) -> Key<T> {
-        return register(key: Key(name: name, container: Name.default), metadata: metadata, cached: true) { instance }
+        return register(key: Key(name: name, container: Container.default), metadata: metadata, cached: true) { instance }
     }
     
     /**
@@ -171,7 +171,7 @@ extension Guise {
      - note: The registration is made with the default name, `Name.default`, and in the default container, `Name.default`.
      */
     public static func register<T>(instance: T, metadata: Any = ()) -> Key<T> {
-        return register(key: Key(name: Name.default, container: Name.default), metadata: metadata, cached: true) { instance }
+        return register(key: Key(name: Name.default, container: Container.default), metadata: metadata, cached: true) { instance }
     }
     
 }
