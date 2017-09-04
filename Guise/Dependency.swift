@@ -9,6 +9,8 @@
 import Foundation
 
 class Dependency {
+    private let cacheQueue: DispatchQueue
+    
     /** Default lifecycle for the dependency. */
     let cached: Bool
     /** Registered block. */
@@ -22,12 +24,15 @@ class Dependency {
         self.metadata = metadata
         self.cached = cached
         self.resolution = { param in resolution(param as! P) }
+        self.cacheQueue = DispatchQueue(label: "com.prosumma.Guise.Dependency.\(String(reflecting: T.self)).\(UUID())")
     }
     
     func resolve<T>(parameter: Any, cached: Bool?) -> T {
         var result: T
         if cached ?? self.cached {
-            if instance == nil {
+            // Recursion will cause a deadlock here. But that wouldn't be too smart, would it?
+            cacheQueue.sync {
+                if instance != nil { return }
                 instance = resolution(parameter)
             }
             result = instance! as! T
