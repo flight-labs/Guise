@@ -8,11 +8,6 @@
 
 import Foundation
 
-/**
- The type of a metadata predicate.
- */
-public typealias Metafilter<M> = (M) -> Bool
-
 // MARK: - Filter By Keys
 
 extension Guise {

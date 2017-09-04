@@ -8,21 +8,6 @@
 
 import Foundation
 
-/**
- Used in filters and resolution.
- 
- This type exists primarily to emphasize that the `metathunk` method should be applied to
- `Metafilter<M>` before the metafilter is passed to the master `filter` or `exists` method.
- */
-typealias Metathunk = Metafilter<Any>
-
-func metathunk<M>(_ metafilter: @escaping Metafilter<M>) -> Metathunk {
-    return {
-        guard let metadata = $0 as? M else { return false }
-        return metafilter(metadata)
-    }
-}
-
 /// Generates a hash value for one or more hashable values.
 func hash<H: Hashable>(_ hashables: H...) -> Int {
     // djb2 hash algorithm: http://www.cse.yorku.ca/~oz/hash.html
