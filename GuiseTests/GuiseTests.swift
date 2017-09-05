@@ -121,11 +121,27 @@ class GuiseTests: XCTestCase {
         // Because we asked Guise to cache this registration, we should get back the same reference every time.
         XCTAssert(controller1 === controller2)
         // Here we've asked Guise to call the registered block again, thus creating a new instance.
-        let controller3 = Guise.resolve(cached: false)! as Controlling
+        let controller3 = Guise.resolve(type: Controlling.self, cached: false)!
         XCTAssertFalse(controller1 === controller3)
         // However, the existing cached instance is still there.
         let controller4 = Guise.resolve()! as Controlling
         XCTAssert(controller1 === controller4)
+    }
+    
+    func testResolutionWithEquatableMetadata() {
+        let metadata = HumanMetadata(coolness: 1000)
+        let metawronga = HumanMetadata(coolness: 0)
+        let human = Human(name: "Ludwig von Mises")
+        let name = human.name
+        _ = Guise.register(instance: human, name: name, metadata: metadata)
+        // Sanity check. Can we resolve without metadata?
+        XCTAssertNotNil(Guise.resolve(type: Human.self, name: name))
+        // This succeeds because all the ducks are in a row.
+        XCTAssertNotNil(Guise.resolve(type: Human.self, name: name, metadata: metadata))
+        // Although the metadata is of the right type, the equality comparison fails, so `resolve` returns `nil`.
+        XCTAssertNil(Guise.resolve(type: Human.self, name: name, metadata: metawronga))
+        // The metadata is not of the right type, so `resolve` returns `nil`.
+        XCTAssertNil(Guise.resolve(type: Human.self, name: name, metadata: 7))
     }
     
     func testMultipleResolutionsWithMetafilter() {
@@ -143,7 +159,7 @@ class GuiseTests: XCTestCase {
     func testMultipleHeterogeneousResolutionsUsingProtocol() {
         _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy")
         _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido")
-        let keys: Set<Key<Animal>> = Guise.filter(type: Animal.self)
+        let keys = Guise.filter(type: Animal.self)
         let animals = Guise.resolve(keys: keys) as [Animal]
         XCTAssertEqual(2, animals.count)
     }
@@ -155,13 +171,13 @@ class GuiseTests: XCTestCase {
         let metafilter: Metafilter<Int> = { $0 >= 3 }
         let keys = Guise.filter(type: Animal.self, metafilter: metafilter)
         let animals = Guise.resolve(keys: keys) as [Key<Animal>: Animal]
-        // The registration of the integer 7 above is skipped, because it is not an Animal.
+        // The resolution of the integer 7 above is skipped, because it is not an Animal.
         XCTAssertEqual(2, animals.count)
     }
     
     func testResolutionByKey() {
         let key = Guise.register(instance: Dog(name: "Lucy"))
-        XCTAssertNotNil(Guise.resolve(key: key) as Dog?)
+        XCTAssertNotNil(Guise.resolve(key: key))
     }
     
     func testResolutionsWithKeysOfIncorrectTypeAreSkipped() {
@@ -171,7 +187,7 @@ class GuiseTests: XCTestCase {
         let keys = Guise.filter(metafilter: metafilter)
         // We get back two keys, but they resolve disparate types.
         XCTAssertEqual(2, keys.count)
-        let humans = Guise.resolve(keys: Set(keys.flatMap{ Key<Human>($0) })) as [Human]
+        let humans = Guise.resolve(keys: Set(keys.flatMap{ Key($0) })) as [Human]
         // Because we are resolving Humans, not Dogs, Brian Griffin is skipped.
         XCTAssertEqual(1, humans.count)
     }
@@ -182,6 +198,8 @@ class GuiseTests: XCTestCase {
     }
     
     func testTypeRegistrationAndResolution() {
-        
+        let name = UUID()
+        _ = Guise.register(type: Controlling.self, for: Controller.self, name: name)
+        XCTAssertNotNil(Guise.resolve(type: Controlling.self, name: name))
     }
 }
