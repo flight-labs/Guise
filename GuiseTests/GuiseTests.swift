@@ -150,6 +150,7 @@ class GuiseTests: XCTestCase {
             _ = Guise.register(instance: Human(name: name), name: name, container: Container.people, metadata: HumanMetadata(coolness: coolness))
         }
         _ = Guise.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
+        // This excludes poor Huáscar, because his coolness is only 1.
         let metafilter: Metafilter<HumanMetadata> = { $0.coolness > 1 }
         let keys = Guise.filter(type: Human.self, container: Container.people, metafilter: metafilter)
         let people = Guise.resolve(keys: keys) as [Human]
@@ -187,18 +188,24 @@ class GuiseTests: XCTestCase {
         let keys = Guise.filter(metafilter: metafilter)
         // We get back two keys, but they resolve disparate types.
         XCTAssertEqual(2, keys.count)
-        let humans = Guise.resolve(keys: Set(keys.flatMap{ Key($0) })) as [Human]
+        let humans = Guise.resolve(keys: Set(keys.flatMap(Key.init))) as [Human]
         // Because we are resolving Humans, not Dogs, Brian Griffin is skipped.
         XCTAssertEqual(1, humans.count)
     }
     
-    func testRetrieveMetadataByType() {
+    func testRetrieveTypedMetadata() {
         let key = Guise.register(instance: Human(name: "Ruijie Li"), metadata: HumanMetadata(coolness: 99))
         XCTAssertNotNil(Guise.metadata(for: key, type: HumanMetadata.self))
     }
     
+    func testRetrieveUntypedMetadata() {
+        let key = Guise.register(instance: Human(name: "Ruijie Li"), metadata: HumanMetadata(coolness: 99))
+        XCTAssertNotNil(Guise.metadata(for: key))
+    }
+    
     func testTypeRegistrationAndResolution() {
         let name = UUID()
+        // `type` is always the type we're registering in the key. `Controller` must implement `Init`.
         _ = Guise.register(type: Controlling.self, for: Controller.self, name: name)
         XCTAssertNotNil(Guise.resolve(type: Controlling.self, name: name))
     }
