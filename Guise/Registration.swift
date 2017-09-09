@@ -12,11 +12,6 @@ extension Guise {
     
     // MARK: Block Registration By Key
     
-    public static func register<P, T>(key: Key<T>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
-        lock.write { registrations[AnyKey(key)!] = Dependency(metadata: metadata, cached: cached, resolution: resolution) }
-        return key
-    }
-    
     public static func register<P, T>(keys: Set<Key<T>>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Set<Key<T>> {
         return lock.write {
             for key in keys {
@@ -25,75 +20,25 @@ extension Guise {
             return keys
         }
     }
+
+    public static func register<P, T>(key: Key<T>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
+        return register(keys: [key], metadata: metadata, cached: cached, resolution: resolution).first!
+    }
     
-    // MARK: Block Registration By Type, Name, And/Or Container
-    
-    public static func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
+    public static func register<T, P>(name: AnyHashable = Name.default, container: AnyHashable = Container.default, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
         return register(key: Key(name: name, container: container), metadata: metadata, cached: cached, resolution: resolution)
     }
     
-    public static func register<P, T, N: Hashable>(name: N, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
-        return register(key: Key(name: name, container: Container.default), metadata: metadata, cached: cached, resolution: resolution)
-    }
-    
-    public static func register<P, T, C: Hashable>(container: C, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
-        return register(key: Key(name: Name.default, container: container), metadata: metadata, cached: cached, resolution: resolution)
-    }
-    
-    public static func register<P, T>(metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
-        return register(key: Key(name: Name.default, container: Container.default), metadata: metadata, cached: cached, resolution: resolution)
-    }
-    
-    // MARK: Instance Registration By Name And/Or Container
-    
-    public static func register<T, N: Hashable, C: Hashable>(instance: T, name: N, container: C, metadata: Any = ()) -> Key<T> {
+    public static func register<T>(instance: T, name: AnyHashable = Name.default, container: AnyHashable = Container.default, metadata: Any = ()) -> Key<T> {
         return register(key: Key(name: name, container: container), metadata: metadata, cached: true) { instance }
     }
     
-    public static func register<T, N: Hashable>(instance: T, name: N, metadata: Any = ()) -> Key<T> {
-        return register(key: Key(name: name, container: Container.default), metadata: metadata, cached: true) { instance }
+    public static func register<T: Init>(type: T.Type, name: AnyHashable = Name.default, container: AnyHashable = Container.default, metadata: Any = (), cached: Bool = false) -> Key<T> {
+        return register(key: Key(name: name, container: container), metadata: metadata, cached: cached, resolution: T.init)
     }
     
-    public static func register<T, C: Hashable>(instance: T, container: C, metadata: Any = ()) -> Key<T> {
-        return register(key: Key(name: Name.default, container: container), metadata: metadata, cached: true) { instance }
-    }
-    
-    public static func register<T>(instance: T, metadata: Any = ()) -> Key<T> {
-        return register(key: Key(name: Name.default, container: Container.default), metadata: metadata, cached: true) { instance }
-    }
-    
-    // MARK: Type Registration By Name And/Or Container
-    
-    public static func register<T: Init, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C, metadata: Any = (), cached: Bool = false) -> Key<T> {
-        return register(key: Key<T>(name: name, container: container), metadata: metadata, cached: cached, resolution: T.init)
-    }
-    
-    public static func register<T, I: Init, N: Hashable, C: Hashable>(type: T.Type, for implementation: I.Type, name: N, container: C, metadata: Any = (), cached: Bool = false) -> Key<T> {
-        return register(key: Key<T>(name: name, container: container), metadata: metadata, cached: cached) { I.init() as! T }
-    }
-    
-    public static func register<T: Init, N: Hashable>(type: T.Type, name: N, metadata: Any = (), cached: Bool = false) -> Key<T> {
-        return register(key: Key<T>(name: name), metadata: metadata, cached: cached, resolution: T.init)
-    }
-    
-    public static func register<T, I: Init, N: Hashable>(type: T.Type, for implementation: I.Type, name: N, metadata: Any = (), cached: Bool = false) -> Key<T> {
-        return register(key: Key<T>(name: name), metadata: metadata, cached: cached) { I.init() as! T }
-    }
-    
-    public static func register<T: Init, C: Hashable>(type: T.Type, container: C, metadata: Any = (), cached: Bool = false) -> Key<T> {
-        return register(key: Key<T>(container: container), metadata: metadata, cached: cached, resolution: T.init)
-    }
-    
-    public static func register<T, I: Init, C: Hashable>(type: T.Type, for implementation: I.Type, container: C, metadata: Any = (), cached: Bool = false) -> Key<T> {
-        return register(key: Key<T>(container: container), metadata: metadata, cached: cached) { I.init() as! T }
-    }
-    
-    public static func register<T: Init>(type: T.Type, metadata: Any = (), cached: Bool = false) -> Key<T> {
-        return register(key: Key<T>(), metadata: metadata, cached: cached, resolution: T.init)
-    }
-    
-    public static func register<T, I: Init>(type: T.Type, for implementation: I.Type, metadata: Any = (), cached: Bool = false) -> Key<T> {
-        return register(key: Key<T>(), metadata: metadata, cached: cached) { I.init() as! T }
+    public static func register<T, I: Init>(type: T.Type, for implementation: I.Type, name: AnyHashable = Name.default, container: AnyHashable = Container.default, metadata: Any = (), cached: Bool = false) -> Key<T> {
+        return register(key: Key(name: name, container: container), metadata: metadata, cached: cached) { I() as! T }
     }
 
 }

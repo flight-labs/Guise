@@ -51,7 +51,7 @@ class Controller: Controlling, Init {
 class GuiseTests: XCTestCase {
     
     override func tearDown() {
-        Guise.clear()
+        _ = Guise.clear()
         super.tearDown()
     }
     

@@ -67,68 +67,18 @@ extension Guise {
 
 extension Guise {
     
-    // MARK: Resolve By Type, Name, & Container
-    
-    public static func resolve<T, N: Hashable, C: Hashable>(type: T.Type = T.self, name: N, container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
+    public static func resolve<T>(type: T.Type = T.self, name: AnyHashable = Name.default, container: AnyHashable = Container.default, parameter: Any = (), cached: Bool? = nil) -> T? {
         let key = Key<T>(name: name, container: container)
         return resolve(keys: [key], parameter: parameter, cached: cached, metathunk: nil).values.first
     }
     
-    public static func resolve<T, N: Hashable, C: Hashable, M>(type: T.Type = T.self, name: N, container: C, parameter: Any = (), cached: Bool? = nil, metafilter: @escaping Metafilter<M>) -> T? {
+    public static func resolve<T, M>(type: T.Type = T.self, name: AnyHashable = Name.default, container: AnyHashable = Container.default, parameter: Any = (), cached: Bool? = nil, metafilter: @escaping Metafilter<M>) -> T? {
         let key = Key<T>(name: name, container: container)
         return resolve(keys: [key], parameter: parameter, cached: cached, metathunk: metathunk(metafilter)).values.first
     }
     
-    public static func resolve<T, N: Hashable, C: Hashable, M: Equatable>(type: T.Type = T.self, name: N, container: C, metadata: M, parameter: Any = (), cached: Bool? = nil) -> T? {
+    public static func resolve<T, M: Equatable>(type: T.Type = T.self, name: AnyHashable = Name.default, container: AnyHashable = Container.default, metadata: M, parameter: Any = (), cached: Bool? = nil) -> T? {
         return resolve(name: name, container: container, parameter: parameter, cached: cached) { $0 == metadata }
-    }
-    
-    // MARK: Resolve By Type & Name
-    
-    public static func resolve<T, N: Hashable>(type: T.Type = T.self, name: N, parameter: Any = (), cached: Bool? = nil) -> T? {
-        let key = Key<T>(name: name)
-        return resolve(keys: [key], parameter: parameter, cached: cached, metathunk: nil).values.first
-    }
-    
-    public static func resolve<T, N: Hashable, M>(type: T.Type = T.self, name: N, parameter: Any = (), cached: Bool? = nil, metafilter: @escaping Metafilter<M>) -> T? {
-        let key = Key<T>(name: name)
-        return resolve(keys: [key], parameter: parameter, cached: cached, metathunk: metathunk(metafilter)).values.first
-    }
-    
-    public static func resolve<T, N: Hashable, M: Equatable>(type: T.Type = T.self, name: N, metadata: M, parameter: Any = (), cached: Bool? = nil) -> T? {
-        return resolve(name: name, parameter: parameter, cached: cached) { $0 == metadata }
-    }
-    
-    // MARK: Resolve By Type & Container
-    
-    public static func resolve<T, C: Hashable>(type: T.Type = T.self, container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
-        let key = Key<T>(container: container)
-        return resolve(keys: [key], parameter: parameter, cached: cached, metathunk: nil).values.first
-    }
-    
-    public static func resolve<T, C: Hashable, M>(type: T.Type = T.self, container: C, parameter: Any = (), cached: Bool? = nil, metafilter: @escaping Metafilter<M>) -> T? {
-        let key = Key<T>(container: container)
-        return resolve(keys: [key], parameter: parameter, cached: cached, metathunk: metathunk(metafilter)).values.first
-    }
-    
-    public static func resolve<T, C: Hashable, M: Equatable>(type: T.Type = T.self, container: C, metadata: M, parameter: Any = (), cached: Bool? = nil) -> T? {
-        return resolve(container: container, parameter: parameter, cached: cached) { $0 == metadata }
-    }
-    
-    // MARK: Resolve By Type
-    
-    public static func resolve<T>(type: T.Type = T.self, parameter: Any = (), cached: Bool? = nil) -> T? {
-        let key = Key<T>()
-        return resolve(keys: [key], parameter: parameter, cached: cached, metathunk: nil).values.first
-    }
-    
-    public static func resolve<T, M>(type: T.Type = T.self, parameter: Any = (), cached: Bool? = nil, metafilter: @escaping Metafilter<M>) -> T? {
-        let key = Key<T>()
-        return resolve(keys: [key], parameter: parameter, cached: cached, metathunk: metathunk(metafilter)).values.first
-    }
-    
-    public static func resolve<T, M: Equatable>(type: T.Type = T.self, metadata: M, parameter: Any = (), cached: Bool? = nil) -> T? {
-        return resolve(parameter: parameter, cached: cached) { $0 == metadata }
     }
 
 }

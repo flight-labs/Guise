@@ -40,20 +40,8 @@ public struct AnyKey: Keyed, Hashable {
         self.init(type: key.type, name: key.name, container: key.container)
     }
     
-    public init<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) {
-        self.init(type: String(reflecting: T.self), name: name, container: container)
-    }
-    
-    public init<T, N: Hashable>(type: T.Type, name: N) {
-        self.init(type: String(reflecting: T.self), name: name, container: Guise.Container.default)
-    }
-    
-    public init<T, C: Hashable>(type: T.Type, container: C) {
-        self.init(type: String(reflecting: T.self), name: Guise.Name.default, container: container)
-    }
-    
-    public init<T>(type: T.Type) {
-        self.init(type: String(reflecting: T.self), name: Guise.Name.default, container: Guise.Container.default)
+    public init<T>(type: T.Type, name: AnyHashable = Guise.Name.default, container: AnyHashable = Guise.Container.default) {
+        self.init(type: String(reflecting: type), name: name, container: container)
     }
 }
 
@@ -78,20 +66,8 @@ public struct Key<T>: Keyed, Hashable {
         if key.type != String(reflecting: T.self) { return nil }
         self.init(type: nil, name: key.name, container: key.container)
     }
-    
-    public init<N: Hashable, C: Hashable>(name: N, container: C) {
+
+    public init(name: AnyHashable = Guise.Name.default, container: AnyHashable = Guise.Container.default) {
         self.init(type: nil, name: name, container: container)
-    }
-    
-    public init<N: Hashable>(name: N) {
-        self.init(name: name, container: Guise.Container.default)
-    }
-    
-    public init<C: Hashable>(container: C) {
-        self.init(name: Guise.Name.default, container: container)
-    }
-    
-    public init() {
-        self.init(name: Guise.Name.default, container: Guise.Container.default)
     }
 }

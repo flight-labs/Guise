@@ -12,8 +12,12 @@ extension Guise {
     
     // MARK: Clear Everything
     
-    public static func clear() {
-        lock.write{ registrations = [:] }
+    public static func clear() -> Int {
+        return lock.write {
+            let count = registrations.count
+            registrations = [:]
+            return count
+        }
     }
     
     // MARK: Unregister By Key(s)
@@ -30,23 +34,17 @@ extension Guise {
     public static func unregister<K: Keyed & Hashable>(keys: K...) -> Int {
         return unregister(keys: Set(keys))
     }
-    
-    // MARK: Unregister By Type & Container
-    
-    public static func unregister<T, C: Hashable>(type: T.Type, container: C) -> Int {
-        return unregister(keys: filter(type: type, container: container))
+
+    public static func unregister<T>(type: T.Type, name: AnyHashable? = nil, container: AnyHashable? = nil) -> Int {
+        return unregister(keys: filter(type: type, name: name, container: container))
     }
     
-    // MARK: Unregister by Container
-    
-    public static func unregister<C: Hashable>(container: C) -> Int {
-        return unregister(keys: filter(container: container))
-    }
-    
-    // MARK: Unregister By Type
-    
-    public static func unregister<T>(type: T.Type) -> Int {
-        return unregister(keys: filter(type: type))
+    public static func unregister(name: AnyHashable? = nil, container: AnyHashable? = nil) -> Int {
+        if name == nil && container == nil {
+            return clear()
+        } else {
+            return unregister(keys: filter(name: name, container: container))
+        }
     }
     
 }
