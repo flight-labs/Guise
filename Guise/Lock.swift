@@ -8,31 +8,25 @@
 
 import Foundation
 
-/// A simple non-reentrant lock allowing one writer and multiple readers.
+/// A simple non-reentrant GCD-powered lock allowing one writer and multiple readers.
 class Lock {
-    
-    private let lock: UnsafeMutablePointer<pthread_rwlock_t> = {
-        var lock = UnsafeMutablePointer<pthread_rwlock_t>.allocate(capacity: 1)
-        let status = pthread_rwlock_init(lock, nil)
-        assert(status == 0)
-        return lock
-    }()
-    
-    private func lock<T>(_ acquire: (UnsafeMutablePointer<pthread_rwlock_t>) -> Int32, block: () -> T) -> T {
-        _ = acquire(lock)
-        defer { pthread_rwlock_unlock(lock) }
-        return block()
-    }
+
+    private let queue = DispatchQueue(label: "com.prosumma.Guise.lock", qos: .unspecified, attributes: .concurrent, autoreleaseFrequency: .inherit, target: nil)
     
     func read<T>(_ block: () -> T) -> T {
-        return lock(pthread_rwlock_rdlock, block: block)
+        var result: T! = nil
+        queue.sync {
+            result = block()
+        }
+        return result
     }
     
     func write<T>(_ block: () -> T) -> T {
-        return lock(pthread_rwlock_wrlock, block: block)
+        var result: T! = nil
+        queue.sync(flags: .barrier) {
+            result = block()
+        }
+        return result
     }
     
-    deinit {
-        pthread_rwlock_destroy(lock)
-    }
 }
