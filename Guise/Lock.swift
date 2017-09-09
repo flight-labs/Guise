@@ -8,7 +8,12 @@
 
 import Foundation
 
-/// A simple non-reentrant GCD-powered lock allowing one writer and multiple readers.
+/**
+ A simple non-reentrant GCD-powered lock allowing one writer and multiple readers.
+ 
+ - warning: This lock is **not** re-entrant. Never resolve registrations or evaluate
+ metafilters inside of a lock.
+ */
 class Lock {
 
     private let queue = DispatchQueue(label: "com.prosumma.Guise.lock", qos: .unspecified, attributes: .concurrent, autoreleaseFrequency: .inherit, target: nil)

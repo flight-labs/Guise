@@ -8,37 +8,49 @@
 
 import Foundation
 
-extension Guise {
+/**
+ A simple class to hold the resolution block
+ and a few other interesting bits.
+ */
+class Registration {
+    /**
+     A private serial dispatch queue for cache resolution.
+     
+     This just ensures that we don't resolve more than once
+     due to concurrency when creating a cached value.
+     */
+    private let cacheQueue: DispatchQueue
+    /// Default lifecycle for the dependency
+    let cached: Bool
+    /// The registered resolution block
+    private let resolution: (Any) -> Any
+    /// Cached instance, if any
+    private var instance: Any?
+    /// Metadata, which defaults to an instance of `Void`, i.e., `()`
+    let metadata: Any
     
-    // MARK: Block Registration By Key
+    init<P, T>(metadata: Any, cached: Bool, resolution: @escaping Resolution<P, T>) {
+        self.metadata = metadata
+        self.cached = cached
+        self.resolution = { param in resolution(param as! P) }
+        let label = "com.prosumma.Guise.Dependency.[\(String(reflecting: T.self))].\(UUID())"
+        self.cacheQueue = DispatchQueue(label: label)
+    }
     
-    public static func register<P, T>(keys: Set<Key<T>>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Set<Key<T>> {
-        return lock.write {
-            for key in keys {
-                registrations[AnyKey(key)!] = Dependency(metadata: metadata, cached: cached, resolution: resolution)
+    /// - warning: An incompatible `T` will cause an unrecoverable runtime exception.
+    func resolve<T>(parameter: Any, cached: Bool?) -> T {
+        var result: T
+        if cached ?? self.cached {
+            if instance == nil {
+                cacheQueue.sync {
+                    if instance != nil { return }
+                    instance = resolution(parameter)
+                }
             }
-            return keys
+            result = instance! as! T
+        } else {
+            result = resolution(parameter) as! T
         }
+        return result
     }
-
-    public static func register<P, T>(key: Key<T>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
-        return register(keys: [key], metadata: metadata, cached: cached, resolution: resolution).first!
-    }
-    
-    public static func register<T, P>(name: AnyHashable = Name.default, container: AnyHashable = Container.default, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
-        return register(key: Key(name: name, container: container), metadata: metadata, cached: cached, resolution: resolution)
-    }
-    
-    public static func register<T>(instance: T, name: AnyHashable = Name.default, container: AnyHashable = Container.default, metadata: Any = ()) -> Key<T> {
-        return register(key: Key(name: name, container: container), metadata: metadata, cached: true) { instance }
-    }
-    
-    public static func register<T: Init>(type: T.Type, name: AnyHashable = Name.default, container: AnyHashable = Container.default, metadata: Any = (), cached: Bool = false) -> Key<T> {
-        return register(key: Key(name: name, container: container), metadata: metadata, cached: cached, resolution: T.init)
-    }
-    
-    public static func register<T, I: Init>(type: T.Type, for implementation: I.Type, name: AnyHashable = Name.default, container: AnyHashable = Container.default, metadata: Any = (), cached: Bool = false) -> Key<T> {
-        return register(key: Key(name: name, container: container), metadata: metadata, cached: cached) { I() as! T }
-    }
-
 }

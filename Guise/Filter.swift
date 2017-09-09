@@ -1,5 +1,5 @@
 //
-//  Filtering.swift
+//  Filter.swift
 //  Guise
 //
 //  Created by Gregory Higley on 9/3/17.
@@ -42,7 +42,7 @@ extension Guise {
     
     /// All roads lead here
     private static func filter<K: Keyed & Hashable>(name: AnyHashable?, container: AnyHashable?, metathunk: Metathunk?) -> Set<K> {
-        let keymap: (Dictionary<AnyKey, Dependency>.Element) -> Dictionary<K, Dependency>.Element? = {
+        let keymap: (Dictionary<AnyKey, Registration>.Element) -> Dictionary<K, Registration>.Element? = {
             /*
              Filtering by type occurs when `K` is `Key<T>`. For instance, if `K` is `Key<String>` but `$0.key.type` is
              `Swift.Int`, the initializer will fail because of the type incompatibility. This is why no explicit `type`

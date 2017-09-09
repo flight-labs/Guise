@@ -68,5 +68,5 @@ public struct Guise {
     private init() {}
     
     static var lock = Lock()
-    static var registrations = [AnyKey: Dependency]()
+    static var registrations = [AnyKey: Registration]()
 }
