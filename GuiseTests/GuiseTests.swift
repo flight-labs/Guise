@@ -26,7 +26,7 @@ struct Human: Animal {
     let name: String
 }
 
-struct Dog: Animal {
+struct 🐶: Animal {
     let name: String
 }
 
@@ -45,6 +45,26 @@ protocol Controlling: class {
 class Controller: Controlling, Init {
     required init() {
         
+    }
+}
+
+struct A: Init {
+    let value = "a"
+}
+
+struct B {
+    let a: A
+    let i: Int
+    init(a: A, i: Int) {
+        self.a = a
+        self.i = i
+    }
+}
+
+struct C {
+    let b: B
+    init(b: B) {
+        self.b = b
     }
 }
 
@@ -80,28 +100,28 @@ class GuiseTests: XCTestCase {
         metafilter = { _ in true }
         // We have 4 Humans matching the metafilter query. 3 in Container.people and 1 in the default container.
         XCTAssertEqual(4, Guise.filter(type: Human.self, metafilter: metafilter).count)
-        _ = Guise.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
+        _ = Guise.register(instance: 🐶(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
         // After we added a dog with HumanMetadata, we query by metafilter only, ignoring type and container.
         // We have 5 matching registrations: the three Sapa Incas, Trump, and Brian Griffin.
         XCTAssertEqual(5, (Guise.filter(metafilter: metafilter) as Set<AnyKey>).count)
     }
     
     func testRegistrationsWithEqualKeysOverwrite() {
-        let fidoKey = Guise.register(container: Container.dogs) { Dog(name: "Fido") }
+        let fidoKey = Guise.register(container: Container.dogs) { 🐶(name: "Fido") }
         // This registration should overwrite Fido's.
-        let brutusKey = Guise.register(container: Container.dogs) { Dog(name: "Brutus") }
+        let brutusKey = Guise.register(container: Container.dogs) { 🐶(name: "Brutus") }
         // These two keys are equal because they register the same type in the same container.
         XCTAssertEqual(fidoKey, brutusKey)
         // We should only have 1 dog in the container…
         XCTAssertEqual(1, (Guise.filter(container: Container.dogs) as Set<AnyKey>).count)
         // and that dog should be Brutus, not Fido. Last one wins.
-        let brutus = Guise.resolve(container: Container.dogs)! as Dog
+        let brutus = Guise.resolve(container: Container.dogs)! as 🐶
         XCTAssertEqual(brutus.name, "Brutus")
     }
     
     func testMultipleRegistrations() {
         let keys: Set<Key<Animal>> = [Key(name: "Lucy"), Key(name: "Fido")]
-        _ = Guise.register(keys: keys) { (name: String) in Dog(name: name) as Animal }
+        _ = Guise.register(keys: keys) { (name: String) in 🐶(name: name) as Animal }
         var name = "Fido"
         XCTAssertNotNil(Guise.resolve(name: name, parameter: name) as Animal?)
         name = "Lucy"
@@ -109,8 +129,8 @@ class GuiseTests: XCTestCase {
     }
     
     func testResolutionWithParameter() {
-        _ = Guise.register(container: Container.dogs) { (name: String) in Dog(name: name) }
-        let dog = Guise.resolve(container: Container.dogs, parameter: "Brutus")! as Dog
+        _ = Guise.register(container: Container.dogs) { (name: String) in 🐶(name: name) }
+        let dog = Guise.resolve(container: Container.dogs, parameter: "Brutus")! as 🐶
         XCTAssertEqual(dog.name, "Brutus")
     }
     
@@ -159,7 +179,7 @@ class GuiseTests: XCTestCase {
     
     func testMultipleHeterogeneousResolutionsUsingProtocol() {
         _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy")
-        _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido")
+        _ = Guise.register(instance: 🐶(name: "Fido") as Animal, name: "Fido")
         let keys = Guise.filter(type: Animal.self)
         let animals = Guise.resolve(keys: keys) as [Animal]
         XCTAssertEqual(2, animals.count)
@@ -167,7 +187,7 @@ class GuiseTests: XCTestCase {
     
     func testMultipleResolutionsReturningDictionary() {
         _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy", metadata: 3)
-        _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido", metadata: 10)
+        _ = Guise.register(instance: 🐶(name: "Fido") as Animal, name: "Fido", metadata: 10)
         _ = Guise.register(instance: 7, metadata: 4)
         let metafilter: Metafilter<Int> = { $0 >= 3 }
         let keys = Guise.filter(type: Animal.self, metafilter: metafilter)
@@ -177,19 +197,19 @@ class GuiseTests: XCTestCase {
     }
     
     func testResolutionByKey() {
-        let key = Guise.register(instance: Dog(name: "Lucy"))
+        let key = Guise.register(instance: 🐶(name: "Lucy"))
         XCTAssertNotNil(Guise.resolve(key: key))
     }
     
     func testResolutionsWithKeysOfIncorrectTypeAreSkipped() {
         _ = Guise.register(instance: Human(name: "Abraham Lincoln"), metadata: HumanMetadata(coolness: 9))
-        _ = Guise.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
+        _ = Guise.register(instance: 🐶(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
         let metafilter: Metafilter<HumanMetadata> = { $0.coolness > 5 }
         let keys = Guise.filter(metafilter: metafilter)
         // We get back two keys, but they resolve disparate types.
         XCTAssertEqual(2, keys.count)
         let humans = Guise.resolve(keys: Set(keys.flatMap(Key.init))) as [Human]
-        // Because we are resolving Humans, not Dogs, Brian Griffin is skipped.
+        // Because we are resolving Humans, not dogs, Brian Griffin is skipped.
         XCTAssertEqual(1, humans.count)
     }
     
@@ -208,5 +228,12 @@ class GuiseTests: XCTestCase {
         // `type` is always the type we're registering in the key. `Controller` must implement `Init`.
         _ = Guise.register(type: Controlling.self, for: Controller.self, name: name)
         XCTAssertNotNil(Guise.resolve(type: Controlling.self, name: name))
+    }
+    
+    func testDependencyInjectionAndParameters() {
+        _ = Guise.register(type: A.self)
+        _ = Guise.register{ (i: Int) in B(a: Guise.resolve()!, i: i) }
+        _ = Guise.register{ (i: Int) in C(b: Guise.resolve(parameter: i)!) }
+        XCTAssertNotNil(Guise.resolve(parameter: 3) as C?)
     }
 }

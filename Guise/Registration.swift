@@ -8,6 +8,8 @@
 
 import Foundation
 
+public typealias Resolution<P, T> = (P) -> T
+
 /**
  A simple class to hold the resolution block
  and a few other interesting bits.
