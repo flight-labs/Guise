@@ -10,8 +10,6 @@ import Foundation
 
 extension Guise {
     
-    // MARK: Clear Everything
-    
     public static func clear() -> Int {
         return lock.write {
             let count = registrations.count
@@ -19,8 +17,6 @@ extension Guise {
             return count
         }
     }
-    
-    // MARK: Unregister By Key(s)
     
     public static func unregister<K: Keyed>(keys: Set<K>) -> Int {
         let keys = keys.map{ AnyKey($0)! }
