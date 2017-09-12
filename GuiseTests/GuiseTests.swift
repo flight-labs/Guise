@@ -43,28 +43,11 @@ class GuiseTests: XCTestCase {
         XCTAssertEqual(key2, key3)
     }
 
-    func testResolutionWithoutMetadata() {
+    func testResolution() {
         let name = UUID() // Any hashable type can be a name, and `UUID` fits the bill.
         _ = Guise.register(instance: "instance", name: name)
         let instance = Guise.resolve(name: name)! as String
         XCTAssertEqual(instance, "instance")
     }
     
-    func testResolutionWithMetafilter() {
-        let value = UUID()
-        _ = Guise.register(instance: value, metadata: 7)
-        let resolved = Guise.resolve(type: UUID.self) { (metadata: Int) in metadata > 5 }
-        XCTAssertNotNil(resolved)
-        let unresolved = Guise.resolve(type: UUID.self) { (metadata: Int) in metadata > 7 }
-        XCTAssertNil(unresolved)
-    }
-    
-    func testResolutionWithEquatableMetadata() {
-        let value = UUID()
-        _ = Guise.register(instance: value, metadata: 7)
-        let resolved = Guise.resolve(type: UUID.self, metadata: 7)
-        XCTAssertNotNil(resolved)
-        let unresolved = Guise.resolve(type: UUID.self, metadata: 4)
-        XCTAssertNil(unresolved)
-    }
 }
