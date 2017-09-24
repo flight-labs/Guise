@@ -27,10 +27,6 @@ extension Guise {
         }
     }
     
-    public static func unregister<K: Keyed & Hashable>(keys: K...) -> Int {
-        return unregister(keys: Set(keys))
-    }
-
     public static func unregister<T>(type: T.Type, name: AnyHashable? = nil, container: AnyHashable? = nil) -> Int {
         return unregister(keys: filter(type: type, name: name, container: container))
     }

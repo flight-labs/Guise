@@ -89,6 +89,8 @@ extension Guise {
      - parameter parameter: The parameter passed to the registered resolution blocks when resolving
      - parameter cached: The desired caching behavior
      
+     - returns: A dictionary mapping each key to its resolved instance of `T`
+     
      - note: This method is typically used to resolve the results of `filter`. For instance, to
      find all of the registrations of type `Plugin` whose `container` is `Container.plugins` and
      then resolve them:
@@ -120,6 +122,12 @@ extension Guise {
      
      If any of the `keys` is not registered, it will simply be skipped. This means that `keys.count`
      may not be equal to the `count` of the result.
+     
+     - parameter keys: The set of keys to resolve
+     - parameter parameter: The parameter passed to the registered resolution blocks when resolving
+     - parameter cached: The desired caching behavior
+     
+     - returns: An array of resolved instances of `T`
      
      - note: This method is typically used to resolve the results of `filter`. For instance, to
      find all of the registrations of type `Plugin` whose `container` is `Container.plugins` and
