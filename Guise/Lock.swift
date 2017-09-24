@@ -14,9 +14,25 @@ import Foundation
  - warning: This lock is **not** re-entrant. Never resolve registrations or evaluate
  metafilters inside of a lock.
  */
-class Lock {
+final class Lock {
 
-    private let queue = DispatchQueue(label: "com.prosumma.Guise.lock", qos: .unspecified, attributes: .concurrent, autoreleaseFrequency: .inherit, target: nil)
+    private let queue: DispatchQueue
+    
+    init() {
+        let qos: DispatchQoS
+        if #available(macOS 10.10, *) {
+            qos = .default
+        } else {
+            qos = .unspecified
+        }
+        let afq: DispatchQueue.AutoreleaseFrequency
+        if #available(macOS 10.12, iOS 10.0, tvOS 10.0, *) {
+            afq = .workItem
+        } else {
+            afq = .inherit
+        }
+        queue = DispatchQueue(label: "com.prosumma.Guise.lock", qos: qos, attributes: .concurrent, autoreleaseFrequency: afq, target: nil)
+    }
     
     func read<T>(_ block: () -> T) -> T {
         var result: T! = nil
