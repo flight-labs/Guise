@@ -20,7 +20,7 @@ protocol Serving {
 
 struct Server: Serving {
     func fetch(_ callback: (Response) -> Void) {
-        let mainBundle = Guise.resolve(name: BundleName.main)! as Bundle
+        let mainBundle = Locator.current.resolve(name: BundleName.main)! as Bundle
         let path = mainBundle.path(forResource: "Data", ofType: "json")!
         
         var response = Response.error(nil)

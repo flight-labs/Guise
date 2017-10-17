@@ -37,7 +37,7 @@ struct HumanMetadata {
 class GuiseTests: XCTestCase {
     
     override func tearDown() {
-        Guise.clear()
+        Locator.current.clear()
         super.tearDown()
     }
     
@@ -52,112 +52,112 @@ class GuiseTests: XCTestCase {
     func testFilteringAndMetadata() {
         let names = ["Huayna Capac": 7, "Huáscar": 1, "Atahualpa": 9]
         for (name, coolness) in names {
-            let _ = Guise.register(instance: Human(name: name), name: name, container: Container.people, metadata: HumanMetadata(coolness: coolness))
+            let _ = Locator.current.register(instance: Human(name: name), name: name, container: Container.people, metadata: HumanMetadata(coolness: coolness))
         }
-        XCTAssertEqual(3, Guise.filter(container: Container.people).count)
-        let _ = Guise.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
+        XCTAssertEqual(3, Locator.current.filter(container: Container.people).count)
+        let _ = Locator.current.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
         var metafilter: Metafilter<HumanMetadata> = { $0.coolness > 1 }
         // Only two humans in Container.people have HumanMetadata with coolness > 1.
         // Augustus does not have HumanMetadata. He has Int metadata, so he is simply skipped.
-        XCTAssertEqual(2, Guise.filter(container: Container.people, metafilter: metafilter).count)
-        let _ = Guise.register(instance: Human(name: "Trump"), metadata: HumanMetadata(coolness: 0))
+        XCTAssertEqual(2, Locator.current.filter(container: Container.people, metafilter: metafilter).count)
+        let _ = Locator.current.register(instance: Human(name: "Trump"), metadata: HumanMetadata(coolness: 0))
         // This metafilter effectively queries for all registrations using HumanMetadata,
         // regardless of the value of this Metadata.
         metafilter = { _ in true }
         // We have 4 Humans matching the metafilter query. 3 in Container.people and 1 in the default container.
-        XCTAssertEqual(4, Guise.filter(type: Human.self, metafilter: metafilter).count)
-        let _ = Guise.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
+        XCTAssertEqual(4, Locator.current.filter(type: Human.self, metafilter: metafilter).count)
+        let _ = Locator.current.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
         // After we added a dog with HumanMetadata, we query by metafilter only, ignoring type and container.
         // We have 5 matching registrations: the three Sapa Incas, Trump, and Brian Griffin.
-        XCTAssertEqual(5, Guise.filter(metafilter: metafilter).count)
+        XCTAssertEqual(5, Locator.current.filter(metafilter: metafilter).count)
     }
     
     func testRegistrationsWithEqualKeysOverwrite() {
-        let fidoKey = Guise.register(container: Container.dogs) { Dog(name: "Fido") }
+        let fidoKey = Locator.current.register(container: Container.dogs) { Dog(name: "Fido") }
         // This registration should overwrite Fido's.
-        let brutusKey = Guise.register(container: Container.dogs) { Dog(name: "Brutus") }
+        let brutusKey = Locator.current.register(container: Container.dogs) { Dog(name: "Brutus") }
         // These two keys are equal because they register the same type in the same container.
         XCTAssertEqual(fidoKey, brutusKey)
         // We should only have 1 dog in the container…
-        XCTAssertEqual(1, Guise.filter(container: Container.dogs).count)
+        XCTAssertEqual(1, Locator.current.filter(container: Container.dogs).count)
         // and that dog should be Brutus, not Fido. Last one wins.
-        let brutus = Guise.resolve(container: Container.dogs)! as Dog
+        let brutus = Locator.current.resolve(container: Container.dogs)! as Dog
         XCTAssertEqual(brutus.name, "Brutus")
     }
     
     func testMultipleRegistrations() {
         let keys: Set<Key<Animal>> = [Key(name: "Lucy"), Key(name: "Fido")]
-        let _ = Guise.register(keys: keys) { (name: String) in Dog(name: name) as Animal }
+        let _ = Locator.current.register(keys: keys) { (name: String) in Dog(name: name) as Animal }
         var name = "Fido"
-        XCTAssertNotNil(Guise.resolve(name: name, parameter: name) as Animal?)
+        XCTAssertNotNil(Locator.current.resolve(name: name, parameter: name) as Animal?)
         name = "Lucy"
-        XCTAssertNotNil(Guise.resolve(name: name, parameter: name) as Animal?)
+        XCTAssertNotNil(Locator.current.resolve(name: name, parameter: name) as Animal?)
     }
     
     func testResolutionWithParameter() {
-        let _ = Guise.register(container: Container.dogs) { (name: String) in Dog(name: name) }
-        let dog = Guise.resolve(container: Container.dogs, parameter: "Brutus")! as Dog
+        let _ = Locator.current.register(container: Container.dogs) { (name: String) in Dog(name: name) }
+        let dog = Locator.current.resolve(container: Container.dogs, parameter: "Brutus")! as Dog
         XCTAssertEqual(dog.name, "Brutus")
     }
     
     func testCaching() {
-        let _ = Guise.register(cached: true) { Controller() as Controlling }
-        let controller1 = Guise.resolve()! as Controlling
-        let controller2 = Guise.resolve()! as Controlling
+        let _ = Locator.current.register(cached: true) { Controller() as Controlling }
+        let controller1 = Locator.current.resolve()! as Controlling
+        let controller2 = Locator.current.resolve()! as Controlling
         // Because we asked Guise to cache this registration, we should get back the same reference every time.
         XCTAssert(controller1 === controller2)
         // Here we've asked Guise to call the registered block again, thus creating a new instance.
-        let controller3 = Guise.resolve(cached: false)! as Controlling
+        let controller3 = Locator.current.resolve(cached: false)! as Controlling
         XCTAssertFalse(controller1 === controller3)
         // However, the existing cached instance is still there.
-        let controller4 = Guise.resolve()! as Controlling
+        let controller4 = Locator.current.resolve()! as Controlling
         XCTAssert(controller1 === controller4)
     }
     
     func testMultipleResolutionsWithMetafilter() {
         let names = ["Huayna Capac": 7, "Huáscar": 1, "Atahualpa": 9]
         for (name, coolness) in names {
-            let _ = Guise.register(instance: Human(name: name), name: name, container: Container.people, metadata: HumanMetadata(coolness: coolness))
+            let _ = Locator.current.register(instance: Human(name: name), name: name, container: Container.people, metadata: HumanMetadata(coolness: coolness))
         }
-        let _ = Guise.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
+        let _ = Locator.current.register(instance: Human(name: "Augustus"), name: "Augustus", container: Container.people, metadata: 77)
         let metafilter: Metafilter<HumanMetadata> = { $0.coolness > 1 }
-        let keys = Guise.filter(type: Human.self, container: Container.people, metafilter: metafilter)
-        let people = Guise.resolve(keys: keys) as [Human]
+        let keys = Locator.current.filter(type: Human.self, container: Container.people, metafilter: metafilter)
+        let people = Locator.current.resolve(keys: keys) as [Human]
         XCTAssertEqual(2, people.count)
     }
     
     func testMultipleHeterogeneousResolutionsUsingProtocol() {
-        let _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy")
-        let _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido")
-        let keys = Guise.filter(type: Animal.self)
-        let animals = Guise.resolve(keys: keys) as [Animal]
+        let _ = Locator.current.register(instance: Human(name: "Lucy") as Animal, name: "Lucy")
+        let _ = Locator.current.register(instance: Dog(name: "Fido") as Animal, name: "Fido")
+        let keys = Locator.current.filter(type: Animal.self)
+        let animals = Locator.current.resolve(keys: keys) as [Animal]
         XCTAssertEqual(2, animals.count)
     }
     
     func testMultipleResolutionsReturningDictionary() {
-        let _ = Guise.register(instance: Human(name: "Lucy") as Animal, name: "Lucy", metadata: 3)
-        let _ = Guise.register(instance: Dog(name: "Fido") as Animal, name: "Fido", metadata: 10)
-        let _ = Guise.register(instance: 7, metadata: 4)
+        let _ = Locator.current.register(instance: Human(name: "Lucy") as Animal, name: "Lucy", metadata: 3)
+        let _ = Locator.current.register(instance: Dog(name: "Fido") as Animal, name: "Fido", metadata: 10)
+        let _ = Locator.current.register(instance: 7, metadata: 4)
         let metafilter: Metafilter<Int> = { $0 >= 3 }
-        let keys = Guise.filter(type: Animal.self, metafilter: metafilter)
-        let animals = Guise.resolve(keys: keys) as [Key<Animal>: Animal]
+        let keys = Locator.current.filter(type: Animal.self, metafilter: metafilter)
+        let animals = Locator.current.resolve(keys: keys) as [Key<Animal>: Animal]
         // The registration of the integer 7 above is skipped, because it is not an Animal.
         XCTAssertEqual(2, animals.count)
     }
     
     func testResolutionByKey() {
-        let key = Guise.register(instance: Dog(name: "Lucy"))
-        XCTAssertNotNil(Guise.resolve(key: key) as Dog?)
+        let key = Locator.current.register(instance: Dog(name: "Lucy"))
+        XCTAssertNotNil(Locator.current.resolve(key: key) as Dog?)
     }
     
     func testResolutionsWithKeysOfIncorrectTypeAreSkipped() {
-        let _ = Guise.register(instance: Human(name: "Abraham Lincoln"), metadata: HumanMetadata(coolness: 9))
-        let _ = Guise.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
+        let _ = Locator.current.register(instance: Human(name: "Abraham Lincoln"), metadata: HumanMetadata(coolness: 9))
+        let _ = Locator.current.register(instance: Dog(name: "Brian Griffin"), metadata: HumanMetadata(coolness: 10))
         let metafilter: Metafilter<HumanMetadata> = { $0.coolness > 5 }
-        let keys = Guise.filter(metafilter: metafilter)
+        let keys = Locator.current.filter(metafilter: metafilter)
         // We get back two keys, but they resolve disparate types.
         XCTAssertEqual(2, keys.count)
-        let humans = Guise.resolve(keys: keys.typedKeys()) as [Human]
+        let humans = Locator.current.resolve(keys: keys.typedKeys()) as [Human]
         // Because we are resolving Humans, not Dogs, Brian Griffin is skipped.
         XCTAssertEqual(1, humans.count)
     }

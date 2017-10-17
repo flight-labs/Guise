@@ -15,10 +15,10 @@ protocol Controlling: class {
 
 class Controller: Controlling {
     func getItems() {
-        let server = Guise.resolve()! as Serving
+        let server = Locator.current.resolve()! as Serving
         server.fetch { response in
             if case .success(let items) = response {
-                let database = Guise.resolve()! as Database
+                let database = Locator.current.resolve()! as Database
                 database.saveItems(items)
             }
         }

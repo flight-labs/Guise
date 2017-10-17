@@ -54,7 +54,7 @@ private func ??=<T>(lhs: inout T?, rhs: @autoclosure () -> T?) {
  A simple non-reentrant lock allowing one writer and multiple readers.
  */
 private class Lock {
-    
+
     private let lock: UnsafeMutablePointer<pthread_rwlock_t> = {
         var lock = UnsafeMutablePointer<pthread_rwlock_t>.allocate(capacity: 1)
         let status = pthread_rwlock_init(lock, nil)
@@ -290,12 +290,26 @@ private class Dependency {
     }
 }
 
-public struct Guise {
-    private init() {}
+public struct Locator {
+    public static var current = Guise()
+}
+
+extension Guise {
+    public func with(block: (() -> Void)) {
+        let orig = Locator.current
+        Locator.current = self
+        defer { Locator.current = orig }
+
+        block()
+    }
+}
+
+public class Guise {
+    public init() {}
     
-    private static var lock = Lock()
-    private static var registrations = [AnyKey: Dependency]()
-    
+    private var lock = Lock()
+    private var registrations = [AnyKey: Dependency]()
+
     /**
      Register the `resolution` block with the result type `T` and the parameter `P`.
      
@@ -307,7 +321,7 @@ public struct Guise {
          - cached: Whether or not to cache the result of the registration block.
          - resolution: The block to register with Guise.
     */
-    public static func register<P, T>(key: Key<T>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
+    public func register<P, T>(key: Key<T>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
         lock.write { registrations[AnyKey(key)] = Dependency(metadata: metadata, cached: cached, resolution: resolution) }
         return key
     }
@@ -323,7 +337,7 @@ public struct Guise {
          - cached: Whether or not to cache the result of the registration block.
          - resolution: The block to register with Guise.
     */
-    public static func register<P, T>(keys: Set<Key<T>>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Set<Key<T>> {
+    public func register<P, T>(keys: Set<Key<T>>, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Set<Key<T>> {
         return lock.write {
             for key in keys {
                 registrations[AnyKey(key)] = Dependency(metadata: metadata, cached: cached, resolution: resolution)
@@ -344,7 +358,7 @@ public struct Guise {
         - cached: Whether or not to cache the result of the registration block.
         - resolution: The block to register with Guise.
     */
-    public static func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
+    public func register<P, T, N: Hashable, C: Hashable>(name: N, container: C, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
         return register(key: Key(name: name, container: container), metadata: metadata, cached: cached, resolution: resolution)
     }
     
@@ -361,7 +375,7 @@ public struct Guise {
      
      - note: The registration is made in the default container, `Name.default`.
      */
-    public static func register<P, T, N: Hashable>(name: N, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
+    public func register<P, T, N: Hashable>(name: N, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
         return register(key: Key(name: name, container: Name.default), metadata: metadata, cached: cached, resolution: resolution)
     }
     
@@ -378,7 +392,7 @@ public struct Guise {
      
      - note: The registration is made with the default name, `Name.default`.
      */
-    public static func register<P, T, C: Hashable>(container: C, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
+    public func register<P, T, C: Hashable>(container: C, metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
         return register(key: Key(name: Name.default, container: container), metadata: metadata, cached: cached, resolution: resolution)
     }
     
@@ -394,7 +408,7 @@ public struct Guise {
      
      - note: The registration is made in the default container, `Name.default` and under the default name, `Name.default`.
     */
-    public static func register<P, T>(metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
+    public func register<P, T>(metadata: Any = (), cached: Bool = false, resolution: @escaping Resolution<P, T>) -> Key<T> {
         return register(key: Key(name: Name.default, container: Name.default), metadata: metadata, cached: cached, resolution: resolution)
     }
     
@@ -409,7 +423,7 @@ public struct Guise {
         - container: The container in which to register the block.
         - metadata: Arbitrary metadata associated with this registration.
     */
-    public static func register<T, N: Hashable, C: Hashable>(instance: T, name: N, container: C, metadata: Any = ()) -> Key<T> {
+    public func register<T, N: Hashable, C: Hashable>(instance: T, name: N, container: C, metadata: Any = ()) -> Key<T> {
         return register(key: Key(name: name, container: container), metadata: metadata, cached: true) { instance }
     }
     
@@ -425,7 +439,7 @@ public struct Guise {
      
      - note: The registration is made in the default container, `Name.default`.
     */
-    public static func register<T, N: Hashable>(instance: T, name: N, metadata: Any = ()) -> Key<T> {
+    public func register<T, N: Hashable>(instance: T, name: N, metadata: Any = ()) -> Key<T> {
         return register(key: Key(name: name, container: Name.default), metadata: metadata, cached: true) { instance }
     }
     
@@ -441,7 +455,7 @@ public struct Guise {
      
      - note: The registration is made with the default name, `Name.default`.
     */
-    public static func register<T, C: Hashable>(instance: T, container: C, metadata: Any = ()) -> Key<T> {
+    public func register<T, C: Hashable>(instance: T, container: C, metadata: Any = ()) -> Key<T> {
         return register(key: Key(name: Name.default, container: container), metadata: metadata, cached: true) { instance }
     }
     
@@ -456,7 +470,7 @@ public struct Guise {
      
      - note: The registration is made with the default name, `Name.default`, and in the default container, `Name.default`.
      */
-    public static func register<T>(instance: T, metadata: Any = ()) -> Key<T> {
+    public func register<T>(instance: T, metadata: Any = ()) -> Key<T> {
         return register(key: Key(name: Name.default, container: Name.default), metadata: metadata, cached: true) { instance }
     }
     
@@ -473,7 +487,7 @@ public struct Guise {
      - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
-    public static func resolve<T>(key: Key<T>, parameter: Any = (), cached: Bool? = nil) -> T? {
+    public func resolve<T>(key: Key<T>, parameter: Any = (), cached: Bool? = nil) -> T? {
         guard let dependency = lock.read({ registrations[AnyKey(key)] }) else { return nil }
         return dependency.resolve(parameter: parameter, cached: cached)
     }
@@ -491,7 +505,7 @@ public struct Guise {
      - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
-    public static func resolve<T>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil) -> [T] {
+    public func resolve<T>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil) -> [T] {
         let dependencies: [Dependency] = lock.read {
             var dependencies = [Dependency]()
             for (key, dependency) in registrations {
@@ -517,7 +531,7 @@ public struct Guise {
 ;     - note: Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
-    public static func resolve<T>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil) -> [Key<T>: T] {
+    public func resolve<T>(keys: Set<Key<T>>, parameter: Any = (), cached: Bool? = nil) -> [Key<T>: T] {
         let dependencies: Dictionary<Key<T>, Dependency> = lock.read {
             var dependencies = Dictionary<Key<T>, Dependency>()
             for (key, dependency) in registrations {
@@ -544,7 +558,7 @@ public struct Guise {
      Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
-    public static func resolve<T, N: Hashable, C: Hashable>(name: N, container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
+    public func resolve<T, N: Hashable, C: Hashable>(name: N, container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
         return resolve(key: Key(name: name, container: container), parameter: parameter, cached: cached)
     }
     
@@ -561,7 +575,7 @@ public struct Guise {
      Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
-    public static func resolve<T, N: Hashable>(name: N, parameter: Any = (), cached: Bool? = nil) -> T? {
+    public func resolve<T, N: Hashable>(name: N, parameter: Any = (), cached: Bool? = nil) -> T? {
         return resolve(key: Key(name: name, container: Name.default), parameter: parameter, cached: cached)
     }
 
@@ -578,7 +592,7 @@ public struct Guise {
      Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
-    public static func resolve<T, C: Hashable>(container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
+    public func resolve<T, C: Hashable>(container: C, parameter: Any = (), cached: Bool? = nil) -> T? {
         return resolve(key: Key(name: Name.default, container: container), parameter: parameter, cached: cached)
     }
 
@@ -594,7 +608,7 @@ public struct Guise {
      Passing `nil` for the `cached` parameter causes Guise to use the value of `cached` recorded
      when the dependency was registered. In most cases, this is what you want.
     */
-    public static func resolve<T>(parameter: Any = (), cached: Bool? = nil) -> T? {
+    public func resolve<T>(parameter: Any = (), cached: Bool? = nil) -> T? {
         return resolve(key: Key(name: Name.default, container: Name.default), parameter: parameter, cached: cached)
     }
     
@@ -603,7 +617,7 @@ public struct Guise {
      
      Checks to make sure that the metadata being checked actually is of type `M`.
     */
-    private static func metathunk<M>(_ metafilter: @escaping Metafilter<M>) -> Metathunk {
+    private func metathunk<M>(_ metafilter: @escaping Metafilter<M>) -> Metathunk {
         return {
             guard let metadata = $0 as? M else { return false }
             return metafilter(metadata)
@@ -613,7 +627,7 @@ public struct Guise {
     /**
      Most of the typed `filter` overloads end up here.
     */
-    private static func filter<T>(name: AnyHashable?, container: AnyHashable?, metafilter: Metathunk? = nil) -> Set<Key<T>> {
+    private func filter<T>(name: AnyHashable?, container: AnyHashable?, metafilter: Metathunk? = nil) -> Set<Key<T>> {
         return lock.read {
             var keys = Set<Key<T>>()
             for (key, dependency) in registrations {
@@ -630,7 +644,7 @@ public struct Guise {
     /**
      Most of the untyped `filter` overloads end up here.
     */
-    private static func filter(name: AnyHashable?, container: AnyHashable?, metafilter: Metathunk? = nil) -> Set<AnyKey> {
+    private func filter(name: AnyHashable?, container: AnyHashable?, metafilter: Metathunk? = nil) -> Set<AnyKey> {
         return lock.read {
             var keys = Set<AnyKey>()
             for (key, dependency) in registrations {
@@ -648,7 +662,7 @@ public struct Guise {
      
      This method will always return either an empty set or a set with one element.
     */
-    public static func filter<T, M>(key: Key<T>, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
+    public func filter<T, M>(key: Key<T>, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
         guard let dependency = lock.read({ registrations[AnyKey(key)] }) else { return [] }
         return metathunk(metafilter)(dependency.metadata) ? [key] : []
     }
@@ -656,7 +670,7 @@ public struct Guise {
     /**
      Find the given key.
     */
-    public static func filter<T>(key: Key<T>) -> Set<Key<T>> {
+    public func filter<T>(key: Key<T>) -> Set<Key<T>> {
         return lock.read{ registrations[AnyKey(key)] == nil ? [] : [key] }
     }
     
@@ -666,7 +680,7 @@ public struct Guise {
      Because all of type, name, and container are specified, this particular method will return either 
      an empty array or an array with a single value.
     */
-    public static func filter<T, N: Hashable, C: Hashable, M>(type: T.Type, name: N, container: C, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
+    public func filter<T, N: Hashable, C: Hashable, M>(type: T.Type, name: N, container: C, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
         let key = Key<T>(name: name, container: container)
         return filter(key: key, metafilter: metafilter)
     }
@@ -677,7 +691,7 @@ public struct Guise {
      Because all of type, name, and container are specified, this particular method will return either
      an empty array or an array with a single value.
      */
-    public static func filter<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> Set<Key<T>> {
+    public func filter<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> Set<Key<T>> {
         let key = Key<T>(name: name, container: container)
         return filter(key: key)
     }
@@ -685,91 +699,91 @@ public struct Guise {
     /**
      Find all keys for the given type and name, independent of container.
     */
-    public static func filter<T, N: Hashable, M>(type: T.Type, name: N, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
+    public func filter<T, N: Hashable, M>(type: T.Type, name: N, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
         return filter(name: name, container: nil, metafilter: metathunk(metafilter))
     }
 
     /**
      Find all keys for the given type and name, independent of container.
      */
-    public static func filter<T, N: Hashable>(type: T.Type, name: N) -> Set<Key<T>> {
+    public func filter<T, N: Hashable>(type: T.Type, name: N) -> Set<Key<T>> {
         return filter(name: name, container: nil, metafilter: nil)
     }
     
     /**
      Find all keys for the given type and container, independent of name.
     */
-    public static func filter<T, C: Hashable, M>(type: T.Type, container: C, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
+    public func filter<T, C: Hashable, M>(type: T.Type, container: C, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
         return filter(name: nil, container: container, metafilter: metathunk(metafilter))
     }
     
     /**
      Find all keys for the given name and container, independent of type.
     */
-    public static func filter<N: Hashable, C: Hashable, M>(name: N, container: C, metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
+    public func filter<N: Hashable, C: Hashable, M>(name: N, container: C, metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
         return filter(name: name, container: container, metafilter: metathunk(metafilter))
     }
 
     /**
      Find all keys for the given name and container, independent of type.
      */
-    public static func filter<N: Hashable, C: Hashable>(name: N, container: C) -> Set<AnyKey> {
+    public func filter<N: Hashable, C: Hashable>(name: N, container: C) -> Set<AnyKey> {
         return filter(name: name, container: container, metafilter: nil)
     }
     
     /**
      Find all keys for the given name, independent of the given type and container.
     */
-    public static func filter<N: Hashable, M>(name: N, metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
+    public func filter<N: Hashable, M>(name: N, metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
         return filter(name: name, container: nil, metafilter: metathunk(metafilter))
     }
 
     /**
      Find all keys for the given name, independent of the given type and container.
      */
-    public static func filter<N: Hashable>(name: N) -> Set<AnyKey> {
+    public func filter<N: Hashable>(name: N) -> Set<AnyKey> {
         return filter(name: name, container: nil, metafilter: nil)
     }
     
     /**
      Find all keys for the given container, independent of given type and name.
     */
-    public static func filter<C: Hashable, M>(container: C, metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
+    public func filter<C: Hashable, M>(container: C, metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
         return filter(name: nil, container: container, metafilter: metathunk(metafilter))
     }
 
     /**
      Find all keys for the given container, independent of given type and name.
      */
-    public static func filter<C: Hashable>(container: C) -> Set<AnyKey> {
+    public func filter<C: Hashable>(container: C) -> Set<AnyKey> {
         return filter(name: nil, container: container, metafilter: nil)
     }
     
     /**
      Find all keys for the given type, independent of name and container.
     */
-    public static func filter<T, M>(type: T.Type, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
+    public func filter<T, M>(type: T.Type, metafilter: @escaping Metafilter<M>) -> Set<Key<T>> {
         return filter(name: nil, container: nil, metafilter: metathunk(metafilter))
     }
     
     /**
      Find all keys for the given type, independent of name and container.
      */
-    public static func filter<T>(type: T.Type) -> Set<Key<T>> {
+    public func filter<T>(type: T.Type) -> Set<Key<T>> {
         return filter(name: nil, container: nil, metafilter: nil)
     }
     
     /**
      Find all keys with registrations matching the metafilter query.
     */
-    public static func filter<M>(metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
+    public func filter<M>(metafilter: @escaping Metafilter<M>) -> Set<AnyKey> {
         return filter(name: nil, container: nil, metafilter: metathunk(metafilter))
     }
     
     /**
      Helper method for filtering.
      */
-    private static func exists(type: String?, name: AnyHashable?, container: AnyHashable?, metafilter: Metathunk? = nil) -> Bool {
+    private func exists(type: String?, name: AnyHashable?, container: AnyHashable?, metafilter: Metathunk? = nil) -> Bool {
         return lock.read {
             for (key, dependency) in registrations {
                 if let type = type, type != key.type { continue }
@@ -785,7 +799,7 @@ public struct Guise {
     /**
      Returns true if a registration exists for `key` and matching the `metafilter` query.
     */
-    public static func exists<M>(key: Keyed, metafilter: @escaping Metafilter<M>) -> Bool {
+    public func exists<M>(key: Keyed, metafilter: @escaping Metafilter<M>) -> Bool {
         guard let dependency = lock.read({ registrations[AnyKey(key)] }) else { return false }
         return metathunk(metafilter)(dependency.metadata)
     }
@@ -793,126 +807,126 @@ public struct Guise {
     /**
      Returns true if a registration exists for the given key.
      */
-    public static func exists(key: Keyed) -> Bool {
+    public func exists(key: Keyed) -> Bool {
         return lock.read { return registrations[AnyKey(key)] != nil }
     }
     
     /**
      Returns true if a key with the given type, name, and container exists.
     */
-    public static func exists<T, N: Hashable, C: Hashable, M>(type: T.Type, name: N, container: C, metafilter: @escaping Metafilter<M>) -> Bool {
+    public func exists<T, N: Hashable, C: Hashable, M>(type: T.Type, name: N, container: C, metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(key: Key<T>(name: name, container: container), metafilter: metathunk(metafilter))
     }
 
     /**
      Returns true if a key with the given type, name, and container exists.
      */
-    public static func exists<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> Bool {
+    public func exists<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) -> Bool {
         return exists(key: AnyKey(type: type, name: name, container: container))
     }
     
     /**
      Returns true if any keys with the given type and name exist in any containers.
     */
-    public static func exists<T, N: Hashable, M>(type: T.Type, name: N, metafilter: @escaping Metafilter<M>) -> Bool {
+    public func exists<T, N: Hashable, M>(type: T.Type, name: N, metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(type: String(reflecting: type), name: name, container: nil, metafilter: metathunk(metafilter))
     }
 
     /**
      Returns true if any keys with the given type and name exist in any containers.
      */
-    public static func exists<T, N: Hashable>(type: T.Type, name: N) -> Bool {
+    public func exists<T, N: Hashable>(type: T.Type, name: N) -> Bool {
         return exists(type: String(reflecting: type), name: name, container: nil, metafilter: nil)
     }
     
     /**
      Returns true if any keys with the given type exist in the given container, independent of name.
     */
-    public static func exists<T, C: Hashable, M>(type: T.Type, container: C, metafilter: @escaping Metafilter<M>) -> Bool {
+    public func exists<T, C: Hashable, M>(type: T.Type, container: C, metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(type: String(reflecting: type), name: nil, container: container, metafilter: metathunk(metafilter))
     }
 
     /**
      Returns true if any keys with the given type exist in the given container, independent of name.
      */
-    public static func exists<T, C: Hashable>(type: T.Type, container: C) -> Bool {
+    public func exists<T, C: Hashable>(type: T.Type, container: C) -> Bool {
         return exists(type: String(reflecting: type), name: nil, container: container, metafilter: nil)
     }
     
     /**
      Returns true if any keys with the given name exist in the given container, independent of type.
     */
-    public static func exists<N: Hashable, C: Hashable, M>(name: N, container: C, metafilter: @escaping Metafilter<M>) -> Bool {
+    public func exists<N: Hashable, C: Hashable, M>(name: N, container: C, metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(type: nil, name: name, container: container, metafilter: metathunk(metafilter))
     }
 
     /**
      Returns true if any keys with the given name exist in the given container, independent of type.
      */
-    public static func exists<N: Hashable, C: Hashable>(name: N, container: C) -> Bool {
+    public func exists<N: Hashable, C: Hashable>(name: N, container: C) -> Bool {
         return exists(type: nil, name: name, container: container, metafilter: nil)
     }
     
     /**
      Return true if any keys with the given name exist in any container, independent of type.
     */
-    public static func exists<N: Hashable, M>(name: N, metafilter: @escaping Metafilter<M>) -> Bool {
+    public func exists<N: Hashable, M>(name: N, metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(type: nil, name: name, container: nil, metafilter: metathunk(metafilter))
     }
     
     /**
      Returns true if any registrations exist under the given name.
     */
-    public static func exists<N: Hashable>(name: N) -> Bool {
+    public func exists<N: Hashable>(name: N) -> Bool {
         return exists(type: nil, name: name, container: nil, metafilter: nil)
     }
     
     /**
      Returns true if there are any keys registered in the given container, matching the given metafilter query.
     */
-    public static func exists<C: Hashable, M>(container: C, metafilter: @escaping Metafilter<M>) -> Bool {
+    public func exists<C: Hashable, M>(container: C, metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(type: nil, name: nil, container: container, metafilter: metathunk(metafilter))
     }
 
     /**
      Returns true if there are any keys registered in the given container.
      */
-    public static func exists<C: Hashable>(container: C) -> Bool {
+    public func exists<C: Hashable>(container: C) -> Bool {
         return exists(type: nil, name: nil, container: container, metafilter: nil)
     }
     
     /**
      Returns true if there are any keys registered with the given type and matching the metafilter query in any container, independent of name.
     */
-    public static func exists<T, M>(type: T.Type, metafilter: @escaping Metafilter<M>) -> Bool {
+    public func exists<T, M>(type: T.Type, metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(type: String(reflecting: type), name: nil, container: nil, metafilter: metathunk(metafilter))
     }
 
     /**
      Returns true if there are any keys registered with the given type in any container, independent of name.
      */
-    public static func exists<T>(type: T.Type) -> Bool {
+    public func exists<T>(type: T.Type) -> Bool {
         return exists(type: String(reflecting: type), name: nil, container: nil, metafilter: nil)
     }
     
     /**
      Returns true if any registrations exist matching the given metafilter, regardless of type, name, or container.
     */
-    public static func exists<M>(metafilter: @escaping Metafilter<M>) -> Bool {
+    public func exists<M>(metafilter: @escaping Metafilter<M>) -> Bool {
         return exists(type: nil, name: nil, container: nil, metafilter: metathunk(metafilter))
     }
     
     /**
      All keys.
     */
-    public static var keys: Set<AnyKey> {
+    public var keys: Set<AnyKey> {
         return lock.read { Set(registrations.keys) }
     }
     
     /**
      Retrieve metadata for the dependency registered under `key`.
     */
-    public static func metadata<M>(for key: Keyed) -> M? {
+    public func metadata<M>(for key: Keyed) -> M? {
         guard let dependency = lock.read({ registrations[AnyKey(key)] }) else { return nil }
         guard let metadata = dependency.metadata as? M else { return nil }
         return metadata
@@ -921,7 +935,7 @@ public struct Guise {
     /**
      Retrieve metadata for multiple keys.
     */
-    public static func metadata<M>(for keys: Set<AnyKey>) -> [AnyKey: M] {
+    public func metadata<M>(for keys: Set<AnyKey>) -> [AnyKey: M] {
         return lock.read {
             var metadatas = [AnyKey: M]()
             for (key, dependency) in registrations {
@@ -936,7 +950,7 @@ public struct Guise {
     /**
      Retrieve metadata for multiple keys.
     */
-    public static func metadata<T, M>(for keys: Set<Key<T>>) -> [Key<T>: M] {
+    public func metadata<T, M>(for keys: Set<Key<T>>) -> [Key<T>: M] {
         return lock.read {
             var metadatas = Dictionary<Key<T>, M>()
             for (key, dependency) in registrations {
@@ -952,35 +966,35 @@ public struct Guise {
     /**
      Remove the dependencies registered under the given key(s).
     */
-    public static func unregister(key: AnyKey...) {
+    public func unregister(key: AnyKey...) {
         unregister(keys: key.untypedKeys())
     }
     
     /**
      Remove the dependencies registered under the given key(s).
     */
-    public static func unregister<T>(key: Key<T>...) {
+    public func unregister<T>(key: Key<T>...) {
         unregister(keys: key.untypedKeys())
     }
     
     /**
      Remove the dependencies registered under the given keys.
     */
-    public static func unregister(keys: Set<AnyKey>)  {
+    public func unregister(keys: Set<AnyKey>)  {
         lock.write { registrations = registrations.filter{ !keys.contains($0.key) }.dictionary() }
     }
     
     /**
      Remove the dependencies registered under the given keys.
     */
-    public static func unregister<T>(keys: Set<Key<T>>) {
+    public func unregister<T>(keys: Set<Key<T>>) {
         unregister(keys: keys.untypedKeys())
     }
     
     /**
      Remove all dependencies. Reset Guise completely.
     */
-    public static func clear() {
+    public func clear() {
         lock.write { registrations = [:] }
     }
 }
