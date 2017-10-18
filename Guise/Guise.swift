@@ -291,10 +291,10 @@ private class Dependency {
 }
 
 public struct Locator {
-    public static var current = Guise()
+    public static var current = ServiceLocator()
 }
 
-extension Guise {
+extension ServiceLocator {
     public func with(block: (() -> Void)) {
         let orig = Locator.current
         Locator.current = self
@@ -304,7 +304,7 @@ extension Guise {
     }
 }
 
-public class Guise {
+public class ServiceLocator {
     public init() {}
     
     private var lock = Lock()
