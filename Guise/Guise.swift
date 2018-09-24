@@ -106,14 +106,14 @@ public struct AnyKey: Keyed, Hashable {
         self.type = key.type
         self.name = key.name
         self.container = key.container
-        self.hashValue = hash(self.type, self.name, self.container)
+        self.hashValue = Guise.hash(self.type, self.name, self.container)
     }
     
     public init<T, N: Hashable, C: Hashable>(type: T.Type, name: N, container: C) {
         self.type = String(reflecting: T.self)
         self.name = name
         self.container = container
-        self.hashValue = hash(self.type, self.name, self.container)
+        self.hashValue = Guise.hash(self.type, self.name, self.container)
     }
     
     public init<T, N: Hashable>(type: T.Type, name: N) {
@@ -138,7 +138,7 @@ extension Sequence where Iterator.Element: Keyed {
      to filter a sequence of keys by type.
     */
     public func typedKeys<T>() -> Set<Key<T>> {
-        return Set<Key<T>>(flatMap{ Key($0) })
+        return Set<Key<T>>(compactMap{ Key($0) })
     }
     
     /**
@@ -163,7 +163,7 @@ extension Dictionary where Key: Keyed {
      a sequence of keys by type.
     */
     public func typedKeys<T>() -> Dictionary<GuiseKey<T>, Value> {
-        return flatMap {
+        return compactMap {
             guard let key = GuiseKey<T>($0.key) else { return nil }
             return (key: key, value: $0.value)
         }.dictionary()
@@ -204,7 +204,7 @@ public struct Key<T>: Keyed, Hashable {
         self.type = String(reflecting: T.self)
         self.name = name
         self.container = container
-        self.hashValue = hash(self.type, self.name, self.container)
+        self.hashValue = Guise.hash(self.type, self.name, self.container)
     }
     
     public init<N: Hashable>(name: N) {
@@ -224,7 +224,7 @@ public struct Key<T>: Keyed, Hashable {
         self.type = key.type
         self.name = key.name
         self.container = key.container
-        self.hashValue = hash(self.type, self.name, self.container)
+        self.hashValue = Guise.hash(self.type, self.name, self.container)
     }
     
 }
